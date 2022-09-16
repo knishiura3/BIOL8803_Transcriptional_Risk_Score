@@ -156,33 +156,38 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-* R 
-  ```
-  suppressPackageStartupMessages(suppressWarnings({
-      library(gwasglue)
-      library(dplyr)
-      library(gassocplot)
-      library(coloc)
-  }))
+R 
+1. Load libraries
+    ```
+    suppressPackageStartupMessages(suppressWarnings({
+        library(gwasglue)
+        library(dplyr)
+        library(gassocplot)
+        library(coloc)
+    }))
+    ```
 
-  # get top GWAS hits
-  top <- ieugwasr::tophits('ieu-b-30') %>% arrange(p)   
+2. get top GWAS hits
+    ``` 
+    top <- ieugwasr::tophits('ieu-b-30') %>% arrange(p)   
+    ```
+3. export GWAS hits to file (tab-delimited), don't wrap in quotes, no headers
+    ```
+    write.table(top, file = "gwas_top_hits.tsv", sep = "\t", quote=FALSE, row.names = FALSE, col.names = FALSE)
+    ```
 
-  # export GWAS hits to file (tab-delimited), don't wrap in quotes, no headers
-  write.table(top, file = "gwas_top_hits.tsv", sep = "\t", quote=FALSE, row.names = FALSE, col.names = FALSE)
-  ```
+Python
 
-* Python
-  ```
-  # WARNING:  this takes about ~30 min for full cis-eQTL file, size of
-  # output SQL DB is ~13.7 GB (not compressed) for input of 3.7GB compressed eQTL file
-  python3 eQTL_build_db.py <eQTL input .gz file> <output DB name>
+4. Build a SQL database from the gzipped eQTL file. WARNING:  this takes about ~30 min for full cis-eQTL file, size of output SQL DB is ~13.7 GB (not compressed) for input of 3.7GB compressed eQTL file
+    ```
+    python3 eQTL_build_db.py <eQTL input .gz file> <output DB name>
+    ```
+5. Query the eQTL SQL database for loci within a given region near each GWAS hit and exports a separate file for each GWAS hit in output directory, as well as a timestamped log file in current directory. NOTE:  this also took about 30 min
+    ```
+    python3 eQTL_query_db.py <GWAS hit file> <eQTL DB> <Window size (bp)> <output directory>
+    ```
 
-  # this also took about 30 min, outputs the eQTL rows corresponding to each GWAS hit in 
-  # separate files in output directory and a timestamped log file in current directory
-  python3 eQTL_query_db.py <GWAS hit file> <eQTL DB> <Window size (bp)> <output directory>
-  ```
-
+6. [NOT FINISHED] Need to modify exported file to be in a format expected by coloc
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
 
 <!-- _For more examples, please refer to the [Documentation](https://example.com)_ -->
