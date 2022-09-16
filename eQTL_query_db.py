@@ -1,16 +1,13 @@
 print("Usage:")
-print("python3 eQTL_in_GWAS_hit_regions.py <GWAS hit file> <eQTL file>")
+print("python3 eQTL_in_GWAS_query_db.py <GWAS hit file> <eQTL DB> <Window size>")
 
 
 import sqlite3
 import datetime
 import os
+from sys import argv
 
-from alive_progress import alive_bar
-import time
-
-# import pandas as pd
-# import numpy as np
+# from alive_progress import alive_bar
 
 
 class eqtl_DB:
@@ -43,26 +40,24 @@ class eqtl_DB:
         return self.cursor.fetchall()
 
 
-# hardcoded test files
-db_name = "eQTLs.db"
-input_file_gwas = "gwas_hits.txt"
+def main():
+    input_file_gwas = argv[1]
+    db_name = argv[2]
+    window = int(argv[3])
 
-# size of interval
-window = 50000
+    manager = eqtl_DB(db_name)
+    manager.connect()
 
-manager = eqtl_DB(db_name)
-manager.connect()
+    # count total lines in file for progress bar
+    # with open(input_file_gwas, "r") as fh:
+    #     for count, line in enumerate(fh):
+    #         pass
+    #     line_total = count + 1
 
-# count total lines in file for progress bar
-with open(input_file_gwas, "r") as fh:
-    for count, line in enumerate(fh):
-        pass
-    line_total = count + 1
-
-# loop over each gwas hit and query the eQTL DB for all eQTLs within a certain window
-with open(input_file_gwas, "r") as fh:
-    # initialize progress bar
-    with alive_bar(line_total) as bar:
+    # loop over each gwas hit and query the eQTL DB for all eQTLs within a certain window
+    with open(input_file_gwas, "r") as fh:
+        # initialize progress bar
+        # with alive_bar(line_total) as bar:
 
         for line in fh:
 
@@ -93,6 +88,10 @@ with open(input_file_gwas, "r") as fh:
                         f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
                     )
             # update progress bar
-            bar()
+            # bar()
 
-manager.close_connection()
+    manager.close_connection()
+
+
+if __name__ == "__main__":
+    main()
