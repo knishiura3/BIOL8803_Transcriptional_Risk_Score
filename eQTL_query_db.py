@@ -1,5 +1,7 @@
 print("Usage:")
-print("python3 eQTL_in_GWAS_query_db.py <GWAS hit file> <eQTL DB> <Window size>")
+print(
+    "python3 eQTL_query_db.py <GWAS hit file> <eQTL DB> <Window size (bp)> <output directory>"
+)
 
 
 import sqlite3
@@ -41,9 +43,11 @@ class eqtl_DB:
 
 
 def main():
-    input_file_gwas = argv[1]
-    db_name = argv[2]
-    window = int(argv[3])
+    # take input/output variables from command line arguments, if not all provided, use hardcoded defaults
+    input_file_gwas = str(argv[1]) if len(argv) > 1 else "gwas_top_hits.tsv"
+    db_name = str(argv[2]) if len(argv) > 2 else "eQTLs.db"
+    window = int(argv[3]) if len(argv) > 3 else int(50000)
+    output_dir = str(argv[4]) if len(argv) > 4 else "output2"
 
     manager = eqtl_DB(db_name)
     manager.connect()
@@ -61,27 +65,44 @@ def main():
 
         for line in fh:
 
-            segs = line.strip().split(" ")
+            segs = line.strip().split("\t")
 
-            rsid = str(segs[0])
-            chromosome = int(segs[1])
-            position = int(segs[2])
+            chr = int(segs[0])
+            position = int(segs[1])
+            beta = float(segs[2])
+            se = float(segs[3])
+            p = float(segs[4])
+            n = int(segs[5])
+            id = str(segs[6])
+            rsid = str(segs[7])
+            ea = str(segs[8])
+            nea = str(segs[9])
+            eaf = float(segs[10])
+            trait = str(segs[11])
 
-            results = manager.query_interval(chromosome, position, window)
+            # query the eQTL DB for all eQTLs falling within the window around a GWAS hit locus and save to a list
+            results = manager.query_interval(chr, position, window)
 
-            # write counts to a log file
-            with open(f"gwas_hits_in_eqtl_regions.log", "a") as logger:
+            # write counts to a log file in current directory
+            current_date = f"{datetime.datetime.now().strftime('%Y-%m-%d')}"
+            current_date_and_time = (
+                f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            with open(
+                f"{current_date}_gwas_hits_in_eqtl_regions.log",
+                "a",
+            ) as logger:
                 logger.write(
-                    f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {len(results)} eQTLs in region +/- {window}bp of gwas hit (rsid chr pos):  {line}"
+                    f"{current_date_and_time} {len(results)} eQTLs in region +/- {window}bp of gwas hit (rsid chr pos):  {rsid} {chr} {position}"
                 )
 
             # create an output directory if it doesn't exist already
-            if not os.path.exists("output"):
-                os.makedirs("output")
+            if not os.path.exists(f"{output_dir}"):
+                os.makedirs(f"{output_dir}")
 
-            # write results to file tab-delimited
+            # write results to tab-delimited file in output directory
             with open(
-                f"output/eQTLs_in_region_{rsid}_{chromosome}_{position}.tsv", "w"
+                f"{output_dir}/eQTLs_in_region_{rsid}_{chr}_{position}.tsv", "w"
             ) as out:
                 for result in results:
                     out.write(
