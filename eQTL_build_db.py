@@ -1,9 +1,10 @@
 print("Usage:")
-print("python3 eQTL_in_GWAS_hit_regions.py <GWAS hit file> <eQTL file>")
+print("python3 eQTL_in_GWAS_hit_regions.py <eQTL input file> <output DB name>")
 
 
 import sqlite3
 import gzip
+from sys import argv
 
 
 class eqtl_DB:
@@ -112,15 +113,18 @@ class eqtl_DB:
         self.connection.commit()
 
 
-# hardcoded test files
-db_name = "eQTLs.db"
-input_file_eqtl = (
-    "2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz"
-)
+def main():
+    # hardcoded test files
+    input_file_eqtl = argv[1]
+    db_name = argv[2]
 
-manager = eqtl_DB(db_name)
-manager.connect()
-# Note:  this takes ~30 minutes for 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz, DB takes up 13.7 GB
-manager.eQTL_to_sql(input_file_eqtl)
+    manager = eqtl_DB(db_name)
+    manager.connect()
+    # Note:  this takes ~30 minutes for 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz, DB takes up 13.7 GB
+    manager.eQTL_to_sql(input_file_eqtl)
 
-manager.close_connection()
+    manager.close_connection()
+
+
+if __name__ == "__main__":
+    main()
