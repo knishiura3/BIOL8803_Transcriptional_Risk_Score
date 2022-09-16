@@ -148,6 +148,7 @@ def main():
                         f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}"
                     )
 
+                    # export raw eQTL rows
                     # out.write(
                     #     f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
                     # )
