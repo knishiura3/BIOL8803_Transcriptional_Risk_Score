@@ -1,5 +1,5 @@
 print("Usage:")
-print("python3 eQTL_in_GWAS_hit_regions.py <eQTL input file> <output DB name>")
+print("python3 eQTL_build_db.py <eQTL input .gz file> <output DB name>")
 
 
 import sqlite3
@@ -114,9 +114,14 @@ class eqtl_DB:
 
 
 def main():
-    # hardcoded test files
-    input_file_eqtl = argv[1]
-    db_name = argv[2]
+
+    # take input/output variables from command line arguments, otherwise use hardcoded defaults
+    input_file_eqtl = (
+        argv[1]
+        if len(argv) > 1
+        else "2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz"
+    )
+    db_name = argv[2] if len(argv) > 2 else "eQTLs.db"
 
     manager = eqtl_DB(db_name)
     manager.connect()
