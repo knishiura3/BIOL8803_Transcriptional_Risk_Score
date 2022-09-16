@@ -174,10 +174,12 @@ To get a local copy up and running follow these simple example steps. -->
 
 * Python
   ```
-  # WARNING:  this takes about ~30 min for full cis-eQTL file, size of output SQL DB is ~13.7 GB (not compressed) for input of 3.7GB compressed eQTL file
+  # WARNING:  this takes about ~30 min for full cis-eQTL file, size of
+  # output SQL DB is ~13.7 GB (not compressed) for input of 3.7GB compressed eQTL file
   python3 eQTL_build_db.py <eQTL input .gz file> <output DB name>
 
-  # this also took about 30 min, outputs a file for each GWAS hit in output directory and a log file in current directory
+  # this also took about 30 min, outputs a file for each GWAS hit in output directory and 
+  # a timestamped log file in current directory
   python3 eQTL_query_db.py <GWAS hit file> <eQTL DB> <Window size (bp)> <output directory>
   ```
 
