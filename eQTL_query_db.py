@@ -8,6 +8,7 @@ import sqlite3
 import datetime
 import os
 from sys import argv
+from math import sqrt
 
 # from alive_progress import alive_bar
 
@@ -105,6 +106,33 @@ def main():
                 f"{output_dir}/eQTLs_in_region_{rsid}_{chr}_{position}.tsv", "w"
             ) as out:
                 for result in results:
+                    # assign result to variables
+                    Pvalue = float(result[0])
+                    SNP = str(result[1])
+                    SNPChr = int(result[2])
+                    SNPPos = int(result[3])
+                    AssessedAllele = str(result[4])
+                    OtherAllele = str(result[5])
+                    Zscore = float(result[6])
+                    Gene = str(result[7])
+                    GeneSymbol = str(result[8])
+                    GeneChr = int(result[9])
+                    GenePos = int(result[10])
+                    NrCohorts = int(result[11])
+                    NrSamples = int(result[12])
+                    FDR = float(result[13])
+                    BonferroniP = float(result[14])
+
+                    # calculated variables
+                    # source:  Zhu, Z. et al. Integration of summary data from GWAS and eQTL studies predicts complex trait gene targets.
+                    # betaSE <- 1/sqrt(2*p*(1-p)*(n+z^2))
+                    # beta <- z/sqrt(2*p*(1-p)*(n+z^2))
+                    betaSE = 1 / (
+                        sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
+                    )
+                    beta = Zscore / (
+                        sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
+                    )
                     out.write(
                         f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
                     )
