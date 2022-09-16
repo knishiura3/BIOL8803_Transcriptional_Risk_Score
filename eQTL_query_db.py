@@ -105,6 +105,8 @@ def main():
             with open(
                 f"{output_dir}/eQTLs_in_region_{rsid}_{chr}_{position}.tsv", "w"
             ) as out:
+                header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
+                out.write(header)
                 for result in results:
                     # assign result to variables
                     Pvalue = float(result[0])
@@ -133,9 +135,22 @@ def main():
                     beta = Zscore / (
                         sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
                     )
+                    # set MAF to eaf from gwas hits, if not defined, set to 0.5
+                    MAF = eaf if eaf != "NA" else 0.5
+
+                    # variance of beta is simply standard error squared
+                    varbeta = betaSE**2
+
+                    # type? not sure about this one
+                    type = "quant"
+                    # output according to header
                     out.write(
-                        f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
+                        f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}"
                     )
+
+                    # out.write(
+                    #     f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
+                    # )
             # update progress bar
             # bar()
 
