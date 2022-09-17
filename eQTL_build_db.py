@@ -14,8 +14,6 @@ class eqtl_DB:
         self.connection = None
         self.cursor = None
 
-        self.taxa = None
-
     def connect(self):
         # Connect to the database and create a cursor
         self.connection = sqlite3.connect(self.db)
