@@ -125,7 +125,8 @@ def main():
 
     manager = eqtl_DB(db_name)
     manager.connect()
-    # Note:  this takes ~30 minutes for 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz, DB takes up 13.7 GB
+    # Note:  this takes ~30 minutes for full summary statistics file, DB takes up 13.7 GB
+    # but only takes a few minutes for FDR filtered file, DB takes up 1.1 GB
     manager.eQTL_to_sql(input_file_eqtl)
 
     manager.close_connection()
