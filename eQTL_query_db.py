@@ -44,9 +44,9 @@ class eqtl_DB:
 def main():
     # take input/output variables from command line arguments, if not all provided, use hardcoded defaults
     input_file_gwas = str(argv[1]) if len(argv) > 1 else "gwas_top_hits.tsv"
-    db_name = str(argv[2]) if len(argv) > 2 else "eQTLs_fdr.db"
+    db_name = str(argv[2]) if len(argv) > 2 else "eQTLs_full.db"
     window = int(argv[3]) if len(argv) > 3 else int(50000)
-    output_dir = str(argv[4]) if len(argv) > 4 else "output_fdr"
+    output_dir = str(argv[4]) if len(argv) > 4 else "output_full"
 
     manager = eqtl_DB(db_name)
     manager.connect()
@@ -121,6 +121,7 @@ def main():
                     out.write(header)
                     total_eQTL_count = 0
                     SNP_set = set()
+                    output_list = []
                     for result in results:
                         # assign result to variables
                         Pvalue = float(result[0])
@@ -167,12 +168,27 @@ def main():
                         # type? not sure about this one
                         type = "quant"
 
-                        # since SQL query results are already sorted by SNP and p-value, we only need to keep the first row for each unique SNP
+                        # since SQL query results are already sorted by SNP and p-value, we only need to keep the first row for each unique SNP, add to list, sort list by SNP, and then loop through list to write to file
                         if SNP not in SNP_set:
                             SNP_set.add(SNP)
-                            out.write(
-                                f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}\n"
+                            output_list.append(
+                                [
+                                    Pvalue,
+                                    NrSamples,
+                                    MAF,
+                                    beta,
+                                    varbeta,
+                                    type,
+                                    SNP,
+                                    Zscore,
+                                    SNPChr,
+                                    SNPPos,
+                                    db_name.split(".")[0],
+                                ]
                             )
+                            # out.write(
+                            #     f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}\n"
+                            # )
                             total_eQTL_count += 1
                         else:
                             continue
@@ -181,6 +197,11 @@ def main():
                         # out.write(
                         #     f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
                         # )
+
+                    # list comprehension to write tab-separated, terminating each line w/ newline
+                    out.write(
+                        "\n".join("\t".join(map(str, row)) for row in output_list)
+                    )
 
                 with open(
                     f"{current_date}_gwas_hits_in_eqtl_regions.log",
