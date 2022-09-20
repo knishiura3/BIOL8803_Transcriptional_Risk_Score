@@ -125,7 +125,7 @@ To get a local copy up and running follow these simple example steps. -->
 <!-- This is an example of how to list things you need to use the software and how to install them. -->
 * anaconda
   ```
-  conda install -c anaconda sqlite
+  conda env create -f=/path/to/environment.yml -n <give env a name>
   ```
 * apt
   ```
