@@ -1,0 +1,32 @@
+name: BIOL8803
+channels:
+  - anaconda
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - r
+  - ca-certificates
+  - certifi
+  - openssl
+  - r-jsonlite
+  - libxml2-devel-cos7-x86_64
+  - r-xml2
+  - r-irkernel
+  - r-curl
+  - r-ragg
+  - jupyter
+  - r-gmp
+  - r-rmpfr
+  - r-car
+  - r-ggrepel
+  - bioconductor-variantannotation
+  - r-base==4.1.3
+  - alive-progress
+  - r-quadprog
+  - r-zoo
+  - r-shiny
+  - rpy2
+  - r-doparallel
+prefix: /home/k_nishiura/opt/miniconda3/envs/BIOL8803
