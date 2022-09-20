@@ -123,7 +123,7 @@ To get a local copy up and running follow these simple example steps. -->
 ### Prerequisites
 
 <!-- This is an example of how to list things you need to use the software and how to install them. -->
-* anaconda
+* anaconda (only tested on Ubuntu in Kenji's WSL2)
   ```
   conda env create -f=/path/to/environment.yml -n <give env a name>
   ```
