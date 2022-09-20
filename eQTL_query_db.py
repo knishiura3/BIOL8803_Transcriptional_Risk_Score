@@ -134,6 +134,7 @@ def main():
                                 f"{output_dir}/{pval_rank_gwashit_str}_{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
                                 "a",
                             ) as out:
+                                # checks if header has been written to file yet
                                 if header_check is None:
                                     header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
                                     out.write(header)
