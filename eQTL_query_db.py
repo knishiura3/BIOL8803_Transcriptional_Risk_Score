@@ -34,185 +34,195 @@ class eqtl_DB:
 
     # Query the database for all rows within 50kb of given gwas position
     # Return a list of tuples
-    def query_interval(self, chromosome, position, window):
+    def query_interval(self, chromosome, lower_end, upper_end):
         # note:  BETWEEN operator is inclusive of both endpoints, sort by rsid
         query = "SELECT * FROM eqtlTable WHERE SNPChr = ? AND SNPPos BETWEEN ? AND ? ORDER BY SNP, Pvalue"
-        self.cursor.execute(query, (chromosome, position - window, position + window))
+        self.cursor.execute(query, (chromosome, lower_end, upper_end))
         return self.cursor.fetchall()
 
 
 def main():
     # take input/output variables from command line arguments, if not all provided, use hardcoded defaults
-    input_file_gwas = str(argv[1]) if len(argv) > 1 else "gwas_top_hits.tsv"
+    input_gwas_dir = str(argv[1]) if len(argv) > 1 else "gwas_hits"
+    # input_file_gwas = str(argv[1]) if len(argv) > 1 else "gwas_top_hits.tsv"
     db_name = str(argv[2]) if len(argv) > 2 else "eQTLs_full.db"
-    window = int(argv[3]) if len(argv) > 3 else int(50000)
-    output_dir = str(argv[4]) if len(argv) > 4 else "output_full"
+    # window = int(argv[3]) if len(argv) > 3 else int(50000)
+    # output_dir = str(argv[4]) if len(argv) > 4 else "output_full"
+    output_dir = str(argv[3]) if len(argv) > 3 else "output_full"
 
     manager = eqtl_DB(db_name)
     manager.connect()
 
     # count total lines in file for progress bar
-    with open(input_file_gwas, "r") as fh:
-        for count, line in enumerate(fh):
-            pass
-        line_total = count + 1
+    # open files in input_gwas_dir sequentially
+    # for each line, query the database for all rows within 50kb of given gwas position
+    # write results to output file
+    # close files
+    # close connection to database
 
-    # initialize progress bar
-    with alive_bar(line_total) as bar:
-        # loop over each gwas hit and query the eQTL DB for all eQTLs within a certain window
-        with open(input_file_gwas, "r") as fh:
+    # loop over the files in the directory with SNPs of interest near GWAS top hits
+    for dirpath, dirnames, filenames in os.walk(input_gwas_dir):
+        total_regions = len(filenames)
+        with alive_bar(total_regions) as bar:
+            for filename in filenames:
+                if filename.endswith("_gwas.tsv"):
+                    input_file_gwas = os.path.join(dirpath, filename)
+                    (
+                        chr_gwas_tophit,
+                        lower_pos_gwas_tophit,
+                        upper_pos_gwas_tophit,
+                        _,
+                    ) = filename.split("_")
+                    # declare unpacked variables as integers
+                    chr_gwas_tophit = int(chr_gwas_tophit)
+                    lower_pos_gwas_tophit = int(lower_pos_gwas_tophit)
+                    upper_pos_gwas_tophit = int(upper_pos_gwas_tophit)
 
-            for line in fh:
+                    # print("Processing file: " + input_file_gwas)
 
-                segs = line.strip().split("\t")
+                    with open(input_file_gwas, "r") as fh:
+                        # count total lines in file for progress bar
+                        total_lines = sum(1 for line in fh)
+                    with open(input_file_gwas, "r") as fh:
+                        total_eQTL_count = 0
+                        for line in fh:
+                            segs = line.strip().split("\t")
+                            # pvalues_gwas = float(segs[0])
+                            # N_gwas = int(segs[1])
+                            MAF_gwas = float(segs[2])
+                            # beta_gwas = float(segs[3])
+                            # varbeta_gwas = float(segs[4])
+                            # type_gwas = str(segs[5])
+                            # snp_gwas = str(segs[6])
+                            # z_gwas = float(segs[7])
+                            # chr_gwas = int(segs[8])
+                            # pos_gwas = int(segs[9])
+                            # id_gwas = str(segs[10])
 
-                chr = int(segs[0])
-                position = int(segs[1])
-                beta = float(segs[2])
-                se = float(segs[3])
-                varbeta_gwas = se**2
-                p = float(segs[4])
-                n = int(segs[5])
-                id = str(segs[6])
-                rsid = str(segs[7])
-                ea = str(segs[8])
-                nea = str(segs[9])
-                eaf = float(segs[10])
-                trait = str(segs[11])
-
-                # calculate zscore from beta, se, and p-value
-                zscore_gwas = beta / se
-
-                # type? not sure about this one
-                type_gwas = "quant"
-
-                # write counts to a log file in current directory
-                current_date = f"{datetime.datetime.now().strftime('%Y-%m-%d')}"
-                current_date_and_time = (
-                    f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                )
-
-                # create an output directory if it doesn't exist already
-                if not os.path.exists(f"{output_dir}"):
-                    os.makedirs(f"{output_dir}")
-
-                # write GWAS hit to tab-delimited file in output directory
-                with open(
-                    f"{output_dir}/region_{rsid}_{chr}_{position}_GWAS.tsv", "w"
-                ) as out:
-                    header = (
-                        f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
-                    )
-                    out.write(header)
-                    out.write(
-                        f"{p}\t{n}\t{eaf}\t{beta}\t{varbeta_gwas}\t{type_gwas}\t{rsid}\t{zscore_gwas}\t{chr}\t{position}\tieu-b-30\n"
-                    )
-
-                # query the eQTL DB for all eQTLs falling within the window around a GWAS hit locus and save to a list
-                results = manager.query_interval(chr, position, window)
-
-                # write eQTLs to tab-delimited file in output directory
-                with open(
-                    f"{output_dir}/region_{rsid}_{chr}_{position}_eQTLs.tsv", "w"
-                ) as out:
-                    header = (
-                        f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
-                    )
-                    out.write(header)
-                    total_eQTL_count = 0
-                    SNP_set = set()
-                    output_list = []
-                    for result in results:
-                        # assign result to variables
-                        Pvalue = float(result[0])
-                        # discard eQTL rows where p-value = 1
-                        if Pvalue == 1:
-                            continue
-                        SNP = str(result[1])
-                        SNPChr = int(result[2])
-                        SNPPos = int(result[3])
-                        AssessedAllele = str(result[4])
-                        OtherAllele = str(result[5])
-                        Zscore = float(result[6])
-                        Gene = str(result[7])
-                        GeneSymbol = str(result[8])
-                        GeneChr = int(result[9])
-                        GenePos = int(result[10])
-                        NrCohorts = int(result[11])
-                        NrSamples = int(result[12])
-                        FDR = float(result[13])
-                        BonferroniP = float(result[14])
-
-                        # calculated variables
-                        # source:  Zhu, Z. et al. Integration of summary data from GWAS and eQTL studies predicts complex trait gene targets.
-                        # betaSE <- 1/sqrt(2*p*(1-p)*(n+z^2))
-                        # beta <- z/sqrt(2*p*(1-p)*(n+z^2))
-                        # try calculating betaSE and if there's an error, print the values of Pvalue, NrSamples, and Zscore
-                        try:
-                            betaSE = 1 / sqrt(
-                                2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2)
+                            # capture time info for logging
+                            current_date = (
+                                f"{datetime.datetime.now().strftime('%Y-%m-%d')}"
                             )
-                            beta = Zscore / sqrt(
-                                2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2)
+                            current_date_and_time = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+                            # query the eQTL DB for all eQTLs falling within the window around a SNP locus and save to a list
+                            results = manager.query_interval(
+                                chr_gwas_tophit,
+                                lower_pos_gwas_tophit,
+                                upper_pos_gwas_tophit,
                             )
-                        except:
-                            print(
-                                f"Error calculating beta/betaSE:  Pvalue={Pvalue} NrSamples={NrSamples} Zscore={Zscore}"
+
+                            # create an output directory if it doesn't exist already
+                            if not os.path.exists(f"{output_dir}"):
+                                os.makedirs(f"{output_dir}")
+                            # write eQTLs to tab-delimited file in output directory
+                            with open(
+                                f"{output_dir}/{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
+                                "a",
+                            ) as out:
+                                header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
+                                out.write(header)
+                                # total_eQTL_count = 0
+                                SNP_set = set()
+                                output_list = []
+                                # looping over eQTL DB query results
+                                for result in results:
+                                    # assign result to variables
+                                    Pvalue = float(result[0])
+                                    # discard eQTL rows where p-value = 1
+                                    if Pvalue == 1:
+                                        continue
+                                    SNP = str(result[1])
+                                    SNPChr = int(result[2])
+                                    SNPPos = int(result[3])
+                                    # AssessedAllele = str(result[4])
+                                    # OtherAllele = str(result[5])
+                                    Zscore = float(result[6])
+                                    # Gene = str(result[7])
+                                    # GeneSymbol = str(result[8])
+                                    # GeneChr = int(result[9])
+                                    # GenePos = int(result[10])
+                                    # NrCohorts = int(result[11])
+                                    NrSamples = int(result[12])
+                                    # FDR = float(result[13])
+                                    # BonferroniP = float(result[14])
+
+                                    # calculated variables
+                                    # source:  Zhu, Z. et al. Integration of summary data from GWAS and eQTL studies predicts complex trait gene targets.
+                                    # betaSE <- 1/sqrt(2*p*(1-p)*(n+z^2))
+                                    # beta <- z/sqrt(2*p*(1-p)*(n+z^2))
+                                    # try calculating betaSE and if there's an error, print the values of Pvalue, NrSamples, and Zscore
+                                    try:
+                                        betaSE = 1 / sqrt(
+                                            2
+                                            * Pvalue
+                                            * (1 - Pvalue)
+                                            * (NrSamples + Zscore**2)
+                                        )
+                                        beta = Zscore / sqrt(
+                                            2
+                                            * Pvalue
+                                            * (1 - Pvalue)
+                                            * (NrSamples + Zscore**2)
+                                        )
+                                    except:
+                                        print(
+                                            f"Error calculating beta/betaSE:  Pvalue={Pvalue} NrSamples={NrSamples} Zscore={Zscore}"
+                                        )
+                                    # set MAF to eaf from gwas hits, if not defined, set to 0.5
+                                    MAF_eqtl = MAF_gwas if MAF_gwas != "NA" else 0.5
+
+                                    # variance of beta is simply standard error squared
+                                    varbeta = betaSE**2
+
+                                    # type? not sure about this one
+                                    type = "quant"
+
+                                    # since SQL query results are already sorted by SNP and p-value, we only need to keep the first row for each unique SNP, add to list, sort list by SNP, and then loop through list to write to file
+                                    if SNP not in SNP_set:
+                                        SNP_set.add(SNP)
+                                        output_list.append(
+                                            [
+                                                Pvalue,
+                                                NrSamples,
+                                                MAF_eqtl,
+                                                beta,
+                                                varbeta,
+                                                type,
+                                                SNP,
+                                                Zscore,
+                                                SNPChr,
+                                                SNPPos,
+                                                db_name.split(".")[0],
+                                            ]
+                                        )
+                                        # out.write(
+                                        #     f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}\n"
+                                        # )
+                                        total_eQTL_count += 1
+                                    else:
+                                        continue
+
+                                    # export raw eQTL rows
+                                    # out.write(
+                                    #     f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
+                                    # )
+
+                                # list comprehension to write tab-separated, terminating each line w/ newline
+                                out.write(
+                                    "\n".join(
+                                        "\t".join(map(str, row)) for row in output_list
+                                    )
+                                )
+                        bar()
+                        with open(
+                            f"{current_date}_gwas_hits_in_eqtl_regions.log",
+                            "a",
+                        ) as logger:
+                            logger.write(
+                                # f"{current_date_and_time} {total_eQTL_count} eQTLs in region +/- {window}bp of gwas hit (rsid chr pos):  {rsid} {chr} {position}\n"
+                                f"{current_date_and_time} {total_eQTL_count} eQTLs in region :  {chr_gwas_tophit} {lower_pos_gwas_tophit} {upper_pos_gwas_tophit}\n"
                             )
-                        # set MAF to eaf from gwas hits, if not defined, set to 0.5
-                        MAF = eaf if eaf != "NA" else 0.5
-
-                        # variance of beta is simply standard error squared
-                        varbeta = betaSE**2
-
-                        # type? not sure about this one
-                        type = "quant"
-
-                        # since SQL query results are already sorted by SNP and p-value, we only need to keep the first row for each unique SNP, add to list, sort list by SNP, and then loop through list to write to file
-                        if SNP not in SNP_set:
-                            SNP_set.add(SNP)
-                            output_list.append(
-                                [
-                                    Pvalue,
-                                    NrSamples,
-                                    MAF,
-                                    beta,
-                                    varbeta,
-                                    type,
-                                    SNP,
-                                    Zscore,
-                                    SNPChr,
-                                    SNPPos,
-                                    db_name.split(".")[0],
-                                ]
-                            )
-                            # out.write(
-                            #     f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}\n"
-                            # )
-                            total_eQTL_count += 1
-                        else:
-                            continue
-
-                        # export raw eQTL rows
-                        # out.write(
-                        #     f"{result[0]}\t{result[1]}\t{result[2]}\t{result[3]}\t{result[4]}\t{result[5]}\t{result[6]}\t{result[7]}\t{result[8]}\t{result[9]}\t{result[10]}\t{result[11]}\t{result[12]}\t{result[13]}\t{result[14]}\n"
-                        # )
-
-                    # list comprehension to write tab-separated, terminating each line w/ newline
-                    out.write(
-                        "\n".join("\t".join(map(str, row)) for row in output_list)
-                    )
-
-                with open(
-                    f"{current_date}_gwas_hits_in_eqtl_regions.log",
-                    "a",
-                ) as logger:
-                    logger.write(
-                        f"{current_date_and_time} {total_eQTL_count} eQTLs in region +/- {window}bp of gwas hit (rsid chr pos):  {rsid} {chr} {position}\n"
-                    )
-
-                # update progress bar
-                bar()
 
     manager.close_connection()
 
