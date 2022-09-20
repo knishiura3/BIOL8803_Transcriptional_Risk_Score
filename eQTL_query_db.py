@@ -33,11 +33,18 @@ class eqtl_DB:
         self.connection = None
 
     # Query the database for all rows within 50kb of given gwas position
-    # Return a list of tuples
     def query_interval(self, chromosome, lower_end, upper_end):
         # note:  BETWEEN operator is inclusive of both endpoints, sort by rsid
         query = "SELECT * FROM eqtlTable WHERE SNPChr = ? AND SNPPos BETWEEN ? AND ? ORDER BY SNP, Pvalue"
         self.cursor.execute(query, (chromosome, lower_end, upper_end))
+        return self.cursor.fetchall()
+
+    # query the database for specific SNP by chromosome and position
+    def query_position(self, chromosome, position):
+        # note:  BETWEEN operator is inclusive of both endpoints, sort by rsid
+        query = "SELECT * FROM eqtlTable WHERE SNPChr = ? AND SNPPos = ? ORDER BY SNP, Pvalue"
+        self.cursor.execute(query, (chromosome, position))
+        # change this to fetchone() if data is validated to only have no duplicates
         return self.cursor.fetchall()
 
 
@@ -53,36 +60,36 @@ def main():
     manager = eqtl_DB(db_name)
     manager.connect()
 
-    # count total lines in file for progress bar
-    # open files in input_gwas_dir sequentially
-    # for each line, query the database for all rows within 50kb of given gwas position
-    # write results to output file
-    # close files
-    # close connection to database
-
     # loop over the files in the directory with SNPs of interest near GWAS top hits
     for dirpath, dirnames, filenames in os.walk(input_gwas_dir):
+        # getting total number of gwas top hits to use for progress bar
         total_regions = len(filenames)
+        # initialize progress bar
         with alive_bar(total_regions) as bar:
             for filename in filenames:
                 if filename.endswith("_gwas.tsv"):
                     input_file_gwas = os.path.join(dirpath, filename)
                     (
+                        pval_rank_gwashit,
                         chr_gwas_tophit,
                         lower_pos_gwas_tophit,
                         upper_pos_gwas_tophit,
                         _,
                     ) = filename.split("_")
                     # declare unpacked variables as integers
+                    # add leading 0 to pval_rank_gwashit so that it will always be 3 digits for output file name
+                    pval_rank_gwashit_str = str(pval_rank_gwashit).zfill(3)
+                    pval_rank_gwashit_int = int(pval_rank_gwashit)
                     chr_gwas_tophit = int(chr_gwas_tophit)
                     lower_pos_gwas_tophit = int(lower_pos_gwas_tophit)
                     upper_pos_gwas_tophit = int(upper_pos_gwas_tophit)
 
                     # print("Processing file: " + input_file_gwas)
 
-                    with open(input_file_gwas, "r") as fh:
-                        # count total lines in file for progress bar
-                        total_lines = sum(1 for line in fh)
+                    # with open(input_file_gwas, "r") as fh:
+                    #     # count total lines in file for progress bar
+                    #     total_lines = sum(1 for line in fh)
+
                     with open(input_file_gwas, "r") as fh:
                         total_eQTL_count = 0
                         for line in fh:
@@ -95,8 +102,8 @@ def main():
                             # type_gwas = str(segs[5])
                             # snp_gwas = str(segs[6])
                             # z_gwas = float(segs[7])
-                            # chr_gwas = int(segs[8])
-                            # pos_gwas = int(segs[9])
+                            chr_gwas = int(segs[8])
+                            pos_gwas = int(segs[9])
                             # id_gwas = str(segs[10])
 
                             # capture time info for logging
@@ -105,19 +112,22 @@ def main():
                             )
                             current_date_and_time = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
+                            # query the eQTL DB for eQTLs in the exact position of GWAS row
+                            results = manager.query_position(chr_gwas, pos_gwas)
+
                             # query the eQTL DB for all eQTLs falling within the window around a SNP locus and save to a list
-                            results = manager.query_interval(
-                                chr_gwas_tophit,
-                                lower_pos_gwas_tophit,
-                                upper_pos_gwas_tophit,
-                            )
+                            # results = manager.query_interval(
+                            #     chr_gwas_tophit,
+                            #     lower_pos_gwas_tophit,
+                            #     upper_pos_gwas_tophit,
+                            # )
 
                             # create an output directory if it doesn't exist already
                             if not os.path.exists(f"{output_dir}"):
                                 os.makedirs(f"{output_dir}")
                             # write eQTLs to tab-delimited file in output directory
                             with open(
-                                f"{output_dir}/{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
+                                f"{output_dir}/{pval_rank_gwashit_str}_{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
                                 "a",
                             ) as out:
                                 header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
@@ -175,10 +185,12 @@ def main():
                                     # variance of beta is simply standard error squared
                                     varbeta = betaSE**2
 
-                                    # type? not sure about this one
                                     type = "quant"
 
-                                    # since SQL query results are already sorted by SNP and p-value, we only need to keep the first row for each unique SNP, add to list, sort list by SNP, and then loop through list to write to file
+                                    # since SQL query results are already sorted by SNP and p-value,
+                                    # we only need to keep the first row for each unique SNP, add to list, sort list by SNP,
+                                    # and then loop through list to write to file
+
                                     if SNP not in SNP_set:
                                         SNP_set.add(SNP)
                                         output_list.append(
@@ -196,9 +208,7 @@ def main():
                                                 db_name.split(".")[0],
                                             ]
                                         )
-                                        # out.write(
-                                        #     f"{Pvalue}\t{NrSamples}\t{MAF}\t{beta}\t{varbeta}\t{type}\t{SNP}\t{Zscore}\t{SNPChr}\t{SNPPos}\t{db_name.split('.')[0]}\n"
-                                        # )
+
                                         total_eQTL_count += 1
                                     else:
                                         continue
@@ -214,14 +224,16 @@ def main():
                                         "\t".join(map(str, row)) for row in output_list
                                     )
                                 )
+                        # increment progressbar counter
                         bar()
+                        # write to log
                         with open(
                             f"{current_date}_gwas_hits_in_eqtl_regions.log",
                             "a",
                         ) as logger:
                             logger.write(
                                 # f"{current_date_and_time} {total_eQTL_count} eQTLs in region +/- {window}bp of gwas hit (rsid chr pos):  {rsid} {chr} {position}\n"
-                                f"{current_date_and_time} {total_eQTL_count} eQTLs in region :  {chr_gwas_tophit} {lower_pos_gwas_tophit} {upper_pos_gwas_tophit}\n"
+                                f"{current_date_and_time} {total_eQTL_count} eQTLs in region : #{pval_rank_gwashit_int} GWAS top hit at chr {chr_gwas_tophit} in region {lower_pos_gwas_tophit}:{upper_pos_gwas_tophit}\n"
                             )
 
     manager.close_connection()
