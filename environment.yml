@@ -29,4 +29,5 @@ dependencies:
   - r-shiny
   - rpy2
   - r-doparallel
+  - sqlite
 prefix: /home/k_nishiura/opt/miniconda3/envs/BIOL8803
