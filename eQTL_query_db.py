@@ -92,6 +92,10 @@ def main():
 
                     with open(input_file_gwas, "r") as fh:
                         total_eQTL_count = 0
+                        header_check = None
+                        # skip header line
+                        next(fh)
+                        # loop over each SNP in the gwas file
                         for line in fh:
                             segs = line.strip().split("\t")
                             # pvalues_gwas = float(segs[0])
@@ -130,8 +134,10 @@ def main():
                                 f"{output_dir}/{pval_rank_gwashit_str}_{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
                                 "a",
                             ) as out:
-                                header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
-                                out.write(header)
+                                if header_check is None:
+                                    header = f"pvalues\tN\tMAF\tbeta\tvarbeta\ttype\tsnp\tz\tchr\tpos\tid\n"
+                                    out.write(header)
+                                    header_check = True
                                 # total_eQTL_count = 0
                                 SNP_set = set()
                                 output_list = []
@@ -206,6 +212,7 @@ def main():
                                                 SNPChr,
                                                 SNPPos,
                                                 db_name.split(".")[0],
+                                                "\n",
                                             ]
                                         )
 
