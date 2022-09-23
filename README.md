@@ -221,7 +221,7 @@ Project Link: [https://github.com/github_username/repo_name](https://github.com/
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* Many thanks to [Kenji Gerhardt](https://github.com/KGerhardt) for his assistance with best practices and optimizing code
+* Many thanks to [Kenji Gerhardt](https://github.com/KGerhardt) for his assistance with coding best practices and optimization
 * []()
 * []()
 
