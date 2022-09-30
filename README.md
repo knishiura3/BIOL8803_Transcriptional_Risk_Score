@@ -169,8 +169,13 @@ Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
-- [ ] Feature 2
+- [ ] User chooses GWAS database on their own from IEU OpenGWAS project (mrcieu.ac.uk) based on their trait of interest, inputs GWAS ID to our app. 
+
+  - Only use top hits for analysis (ieugwasr::tophits())
+  - Optional functionality:  search trait within our app
+  - User chooses size of window around GWAS hits (default to +/- 100kb)
+- [ ] eQTL database:  
+  - GTEX/TIGAR-V2, offer user the choice of tissue type (default to blood)
 - [ ] Feature 3
     - [ ] Nested Feature
 
