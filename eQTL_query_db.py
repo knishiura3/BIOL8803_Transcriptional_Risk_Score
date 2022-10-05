@@ -2,6 +2,8 @@ import sqlite3
 import datetime
 import os
 import click
+import pandas as pd
+import numpy as np
 from math import sqrt
 
 from alive_progress import alive_bar
@@ -81,6 +83,7 @@ def main(input_gwas_dir, db_name, output_dir):
                     #     total_lines = sum(1 for line in fh)
 
                     with open(input_file_gwas, "r") as fh:
+                        output_list = []
                         total_eQTL_count = 0
                         header_check = None
                         # skip header line
@@ -107,15 +110,92 @@ def main(input_gwas_dir, db_name, output_dir):
                             current_date_and_time = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                             # query the eQTL DB for eQTLs in the exact position of GWAS row
-                            results = manager.query_position(chr_gwas, pos_gwas)
+                            try:
+                                results = [
+                                    manager.query_position(chr_gwas, pos_gwas)[0]
+                                ]
+                            except IndexError:
+                                print(f"no eQTLs found for {chr_gwas}:{pos_gwas}")
+                                continue
 
-                            # query the eQTL DB for all eQTLs falling within the window around a SNP locus and save to a list
-                            # results = manager.query_interval(
-                            #     chr_gwas_tophit,
-                            #     lower_pos_gwas_tophit,
-                            #     upper_pos_gwas_tophit,
+                            # read manager.query_position(chr_gwas, pos_gwas into dataframe, only keep columns used for calculations
+                            df = pd.DataFrame(
+                                results,
+                                columns=[
+                                    "Pvalue",
+                                    "SNP",
+                                    "SNPChr",
+                                    "SNPPos",
+                                    "AssessedAllele",
+                                    "OtherAllele",
+                                    "Zscore",
+                                    "Gene",
+                                    "GeneSymbol",
+                                    "GeneChr",
+                                    "GenePos",
+                                    "NrCohorts",
+                                    "NrSamples",
+                                    "FDR",
+                                    "BonferroniP",
+                                ],
+                            )
+                            # Only keep columns Pvalue, SNP, SNPChr, SNPPos, Zscore, NrSamples
+                            df = df[
+                                [
+                                    "Pvalue",
+                                    "SNP",
+                                    "SNPChr",
+                                    "SNPPos",
+                                    "Zscore",
+                                    "NrSamples",
+                                ]
+                            ]
+                            # drop rows where Pvalue = 1
+                            # df = df[df.Pvalue != 1]
+                            # vectorized calculation of betaSE:  betaSE = 1 / sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
+                            df["betaSE"] = 1 / np.sqrt(
+                                2
+                                * df["Pvalue"]
+                                * (1 - df["Pvalue"])
+                                * (df["NrSamples"] + df["Zscore"] ** 2)
+                            )
+                            # vectorized calculation of beta:  beta = Zscore / sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
+                            df["beta"] = df["Zscore"] / np.sqrt(
+                                2
+                                * df["Pvalue"]
+                                * (1 - df["Pvalue"])
+                                * (df["NrSamples"] + df["Zscore"] ** 2)
+                            )
+                            # vectorized assignment of MAF_eqtl = MAF_gwas if MAF_gwas != "NA" else 0.5
+                            df["MAF_eqtl"] = MAF_gwas if MAF_gwas != "NA" else 0.5
+
+                            # vectorized calculation of varbeta:  betaSE**2
+                            df["varbeta"] = df["betaSE"] ** 2
+                            df["type"] = "quant"
+                            df["db_name"] = db_name.split(".")[0]
+                            # reorder columns in desired output format
+                            df = df[
+                                [
+                                    "Pvalue",
+                                    "NrSamples",
+                                    "MAF_eqtl",
+                                    "beta",
+                                    "varbeta",
+                                    "type",
+                                    "SNP",
+                                    "Zscore",
+                                    "SNPChr",
+                                    "SNPPos",
+                                    "db_name",
+                                ]
+                            ]
+                            # append df["Pvalue"] to output list without a header
+                            output_list.append(df.values.tolist()[0])
+                            # output_list.append(
+                            #     df.to_csv(header=False, index=False, line_terminator="")
                             # )
-
+                            # get rid of the lines below once this is working
+                            continue
                             # create an output directory if it doesn't exist already
                             if not os.path.exists(f"{output_dir}"):
                                 os.makedirs(f"{output_dir}")
@@ -224,7 +304,32 @@ def main(input_gwas_dir, db_name, output_dir):
                                 )
                         # increment progressbar counter
                         bar()
+                        # write header and output_list to file
+                        with open(
+                            f"{output_dir}/{pval_rank_gwashit_str}_{chr_gwas_tophit}_{lower_pos_gwas_tophit}_{upper_pos_gwas_tophit}_eQTLs.tsv",
+                            "w",
+                        ) as out:
+                            header = [
+                                "Pvalue",
+                                "NrSamples",
+                                "MAF_eqtl",
+                                "beta",
+                                "varbeta",
+                                "type",
+                                "SNP",
+                                "Zscore",
+                                "SNPChr",
+                                "SNPPos",
+                                "db_name",
+                            ]
+                            out.write("\t".join(header) + "\n")
+                            out.write(
+                                "\n".join(
+                                    "\t".join(map(str, row)) for row in output_list
+                                )
+                            )
                         # write to log
+                        total_eQTL_count = len(output_list)
                         with open(
                             f"{current_date}_gwas_hits_in_eqtl_regions.log",
                             "a",
