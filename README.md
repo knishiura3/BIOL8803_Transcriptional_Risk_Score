@@ -18,6 +18,8 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+![Anaconda](https://img.shields.io/badge/Anaconda-%2344A833.svg?style=for-the-badge&logo=anaconda&logoColor=white)
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
@@ -30,7 +32,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/github_username/repo_name">
+  <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
@@ -39,14 +41,14 @@
   <p align="center">
     project_description
     <br />
-    <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/github_username/repo_name">View Demo</a>
+    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">View Demo</a>
     ·
-    <a href="https://github.com/github_username/repo_name/issues">Report Bug</a>
+    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues">Report Bug</a>
     ·
-    <a href="https://github.com/github_username/repo_name/issues">Request Feature</a>
+    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues">Request Feature</a>
   </p>
 </div>
 
@@ -93,7 +95,7 @@
   Kenji Nishiura
   Jasmyn Pellebon
   ```
-<!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
+<!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `knishiura3`, `BIOL8803_Transcriptional_Risk_Score`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -179,7 +181,7 @@ Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/
 - [ ] Feature 3
     - [ ] Nested Feature
 
-See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -215,9 +217,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Kenji Nishiura - kenji@gatech.edu
 
-Project Link: [https://github.com/github_username/repo_name](https://github.com/github_username/repo_name)
+Project Link: [https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score](https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -236,18 +238,18 @@ Project Link: [https://github.com/github_username/repo_name](https://github.com/
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
-[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge
-[forks-url]: https://github.com/github_username/repo_name/network/members
-[stars-shield]: https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge
-[stars-url]: https://github.com/github_username/repo_name/stargazers
-[issues-shield]: https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge
-[issues-url]: https://github.com/github_username/repo_name/issues
-[license-shield]: https://img.shields.io/github/license/github_username/repo_name.svg?style=for-the-badge
-[license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/knishiura3/BIOL8803_Transcriptional_Risk_Score.svg?style=for-the-badge
+[contributors-url]: https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/knishiura3/BIOL8803_Transcriptional_Risk_Score.svg?style=for-the-badge
+[forks-url]: https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/network/members
+[stars-shield]: https://img.shields.io/github/stars/knishiura3/BIOL8803_Transcriptional_Risk_Score.svg?style=for-the-badge
+[stars-url]: https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/stargazers
+[issues-shield]: https://img.shields.io/github/issues/knishiura3/BIOL8803_Transcriptional_Risk_Score.svg?style=for-the-badge
+[issues-url]: https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues
+[license-shield]: https://img.shields.io/github/license/knishiura3/BIOL8803_Transcriptional_Risk_Score.svg?style=for-the-badge
+[license-url]: https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/linkedin_username
+[linkedin-url]: https://linkedin.com/in/kenji-nishiura/
 [product-screenshot]: images/screenshot.png
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
 [Next-url]: https://nextjs.org/
