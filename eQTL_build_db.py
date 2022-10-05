@@ -1,15 +1,10 @@
-print("Usage:")
-print("python3 eQTL_build_db.py <eQTL input .gz file> <output DB name>")
-
-
 import sqlite3
 import gzip
-from sys import argv
+import click
 
 
 class eqtl_DB:
     def __init__(self, db_name):
-        # Create a database
         self.db = db_name
         self.connection = None
         self.cursor = None
@@ -111,21 +106,28 @@ class eqtl_DB:
         self.connection.commit()
 
 
-def main():
-
-    # take input/output variables from command line arguments, otherwise use hardcoded defaults
-    input_file_eqtl = (
-        argv[1]
-        if len(argv) > 1
-        else "2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz"
-    )
-    db_name = argv[2] if len(argv) > 2 else "eQTLs.db"
-
-    manager = eqtl_DB(db_name)
+# use click to t
+@click.command()
+@click.option(
+    "--input_eqtl",
+    "-i",
+    type=click.Path(exists=True),
+    help="Input eQTL file",
+    default="2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz",
+)
+@click.option(
+    "--output_db_name",
+    "-o",
+    type=click.Path(),
+    help="Output database name",
+    default="eQTLs.db",
+)
+def main(input_eqtl, output_db_name):
+    manager = eqtl_DB(output_db_name)
     manager.connect()
     # Note:  this takes ~30 minutes for full summary statistics file, DB takes up 13.7 GB
     # but only takes a few minutes for FDR filtered file, DB takes up 1.1 GB
-    manager.eQTL_to_sql(input_file_eqtl)
+    manager.eQTL_to_sql(input_eqtl)
 
     manager.close_connection()
 

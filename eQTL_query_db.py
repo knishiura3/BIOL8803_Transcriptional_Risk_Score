@@ -1,13 +1,7 @@
-print("Usage:")
-print(
-    "python3 eQTL_query_db.py <GWAS hit file> <eQTL DB> <Window size (bp)> <output directory>"
-)
-
-
 import sqlite3
 import datetime
 import os
-from sys import argv
+import click
 from math import sqrt
 
 from alive_progress import alive_bar
@@ -15,7 +9,6 @@ from alive_progress import alive_bar
 
 class eqtl_DB:
     def __init__(self, db_name):
-        # Create a database
         self.db = db_name
         self.connection = None
         self.cursor = None
@@ -48,14 +41,11 @@ class eqtl_DB:
         return self.cursor.fetchall()
 
 
-def main():
-    # take input/output variables from command line arguments, if not all provided, use hardcoded defaults
-    input_gwas_dir = str(argv[1]) if len(argv) > 1 else "gwas_hits"
-    # input_file_gwas = str(argv[1]) if len(argv) > 1 else "gwas_top_hits.tsv"
-    db_name = str(argv[2]) if len(argv) > 2 else "eQTLs_full.db"
-    # window = int(argv[3]) if len(argv) > 3 else int(50000)
-    # output_dir = str(argv[4]) if len(argv) > 4 else "output_full"
-    output_dir = str(argv[3]) if len(argv) > 3 else "output_full"
+@click.command()
+@click.argument("input_gwas_dir", type=click.Path(exists=True), default="gwas_hits")
+@click.argument("db_name", type=click.Path(exists=True), default="eQTLs.db")
+@click.argument("output_dir", type=click.Path(), default="output")
+def main(input_gwas_dir, db_name, output_dir):
 
     manager = eqtl_DB(db_name)
     manager.connect()
