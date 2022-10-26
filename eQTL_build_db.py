@@ -16,6 +16,16 @@ class eqtl_DB:
         self.connection = sqlite3.connect(self.db)
         self.cursor = self.connection.cursor()
 
+    def adjust_settings(self):
+        # self.cursor.execute("PRAGMA page_size = 32768;")
+        # self.connection.commit()
+        self.cursor.execute("PRAGMA journal_mode = WAL;")
+        self.connection.commit()
+        self.cursor.execute("PRAGMA synchronous = NORMAL;")
+        self.connection.commit()
+        # self.cursor.execute("PRAGMA locking_mode = exclusive;")
+        # self.connection.commit()
+
     def close_connection(self):
         # Clean up and close the connection
         self.cursor.close()
@@ -47,39 +57,42 @@ class eqtl_DB:
             Pvalue = float(segs[0])
             SNP = str(segs[1])
             SNPChr = int(segs[2])
-            SNPPos = int(segs[3])
+            # SNPPos = int(segs[3])
             # AssessedAllele = str(segs[4])
             # OtherAllele = str(segs[5])
-            Zscore = float(segs[6])
+            # Zscore = float(segs[6])
             # Gene = str(segs[7])
             # GeneSymbol = str(segs[8])
             # GeneChr = int(segs[9])
             # GenePos = int(segs[10])
             # NrCohorts = int(segs[11])
-            NrSamples = int(segs[12])
+            # NrSamples = int(segs[12])
             # FDR = float(segs[13])
             # BonferroniP = float(segs[14])
 
             row = (
-                Pvalue,
-                SNP,
-                SNPChr,
-                SNPPos,
+                float(segs[0]),  # Pvalue
+                str(segs[1]),  # SNP
+                int(segs[2]),  # SNPChr
+                int(segs[3]),  # SNPPos
                 # AssessedAllele,
                 # OtherAllele,
-                Zscore,
+                float(segs[6]),  # Zscore
                 # Gene,
                 # GeneSymbol,
                 # GeneChr,
                 # GenePos,
                 # NrCohorts,
-                NrSamples,
+                int(segs[12]),  # NrSamples
                 # FDR,
                 # BonferroniP,
             )
 
             current_lines.append(row)
             count += 1
+            # print count every 1000 lines
+            if count % 1000 == 0:
+                print(f"Inserted {count} rows into eqtlTable", end="\r", flush=True)
 
             if len(current_lines) >= 10**6:
                 self.cursor.executemany(
@@ -89,6 +102,8 @@ class eqtl_DB:
                 )
                 self.connection.commit()
                 count = 0
+                # clear printed progress
+                print(end="\x1b[2K", flush=True)
                 current_lines = []
 
         fh.close()
@@ -112,17 +127,22 @@ class eqtl_DB:
         self.connection.commit()
 
     def delete_duplicate_rsid_in_eqtlTable_keep_lowest_Pvalue(self):
-        # delete duplicate SNP in eqtlTable and keep the lowest Pvalue
-        # number of unique rsid in eqtlTable should be 8932843
+        # duplicate deletion logic:
+        # 1. partition by SNP
+        # 2. for each partition, sort by Pvalue, and use absolute value of Zscore as tiebreaker
+        # 3. keep the first row in each partition
+        #
+        # Note:
+        #   number of unique rsid in eqtlTable should be 8932843
         #   unpigz -c 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz | awk '{print $2}' | tail -n+2 | sort | uniq | wc -l
         self.cursor.execute(
-            "DELETE FROM eqtlTable WHERE Pvalue NOT IN (SELECT MIN(Pvalue) FROM eqtlTable GROUP BY (SNPChr, SNPPos))"
+            "DELETE FROM eqtlTable WHERE ROWID IN (SELECT ROWID FROM (WITH cte AS (SELECT *, ABS(Zscore) AS absZ, ROWID, ROW_NUMBER() OVER (PARTITION BY SNP ORDER BY Pvalue ASC, ABS(zscore) DESC) AS Row_Number FROM eqtlTable) SELECT * FROM cte WHERE Row_Number <>1))"
         )
         self.connection.commit()
 
     def eQTL_MAF_to_sql(self, input_file_MAF, separator="\t"):
 
-        table_sql = "CREATE TABLE IF NOT EXISTS mafTable (SNP TEXT, chr INTEGER, pos INTEGER, maf REAL)"
+        table_sql = "CREATE TABLE IF NOT EXISTS mafTable (SNP TEXT, chr INTEGER, pos INTEGER, maf REAL, PRIMARY KEY (chr, pos))"
         self.cursor.execute(table_sql)
         self.connection.commit()
 
@@ -138,20 +158,27 @@ class eqtl_DB:
 
             segs = line.strip().split(separator)
 
-            SNP = str(segs[0])
-            chr = int(segs[1])
-            pos = int(segs[2])
-            maf = float(segs[8])
+            # if any element of segs is 'NA', skip this row
+            if any([x == "NA" for x in segs]):
+                continue
+
+            # SNP = str(segs[0])
+            # chr = int(segs[1])
+            # pos = int(segs[2])
+            # maf = float(segs[8])
 
             row = (
-                SNP,
-                chr,
-                pos,
-                maf,
+                str(segs[0]),
+                int(segs[1]),
+                int(segs[1]),
+                float(segs[8]),
             )
 
             current_lines.append(row)
             count += 1
+            # print count every 1000 lines
+            if count % 1000 == 0:
+                print(f"Inserted {count} rows into mafTable", end="\r", flush=True)
 
             if len(current_lines) >= 10**6:
                 self.cursor.executemany(
@@ -160,6 +187,8 @@ class eqtl_DB:
                 )
                 self.connection.commit()
                 count = 0
+                # clear printed progress
+                print(end="\x1b[2K", flush=True)
                 current_lines = []
 
         fh.close()
@@ -173,12 +202,12 @@ class eqtl_DB:
             count = 0
             current_lines = []
 
-        print(f"Finished loading {input_file_MAF} into {self.db}. Indexing...")
+        print(f"Finished loading {input_file_MAF} into {self.db}")
         # create index to speed up filtering
-        self.cursor.execute(
-            "CREATE INDEX IF NOT EXISTS rsid_index ON mafTable (chr, pos)"
-        )
-        self.connection.commit()
+        # self.cursor.execute(
+        #     "CREATE INDEX IF NOT EXISTS rsid_index ON mafTable (chr, pos)"
+        # )
+        # self.connection.commit()
 
 
 # use click to t
@@ -188,7 +217,8 @@ class eqtl_DB:
     "-i",
     type=click.Path(exists=True),
     help="Input eQTL file",
-    default="2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz",
+    # default="2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz",
+    default="subset.txt.gz",
 )
 @click.option(
     "--output_db_name",
@@ -207,27 +237,27 @@ class eqtl_DB:
 def main(input_eqtl, input_maf, output_db_name):
     manager = eqtl_DB(output_db_name)
     manager.connect()
-    # Note:  this takes ~30 minutes for full summary statistics file, DB takes up 13.7 GB
-    # but only takes a few minutes for FDR filtered file, DB takes up 1.1 GB
+    manager.adjust_settings()
+
     eqtl_start = time.monotonic()
     manager.eQTL_to_sql(input_eqtl)
     eqtl_end = time.monotonic()
     print(
-        f"Finished loading eQTLs into sqlite db in {timedelta(minutes=eqtl_end - eqtl_start)} minutes"
+        f"Finished loading eQTLs into sqlite db in {timedelta(seconds=eqtl_end - eqtl_start)} h:mm:ss"
     )
 
     delete_start = time.monotonic()
     manager.delete_duplicate_rsid_in_eqtlTable_keep_lowest_Pvalue()
     delete_end = time.monotonic()
     print(
-        f"Finished deleting duplicate rsids in {timedelta(minutes=delete_end - delete_start)} minutes"
+        f"Finished deleting duplicate rsids in {timedelta(seconds=delete_end - delete_start)} h:mm:ss"
     )
 
     maf_start = time.monotonic()
     manager.eQTL_MAF_to_sql(input_maf)
     maf_end = time.monotonic()
     print(
-        f"Finished loading MAFs into sqlite db in {timedelta(minutes=maf_end - maf_start)} minutes"
+        f"Finished loading MAFs into sqlite db in {timedelta(seconds=maf_end - maf_start)} h:mm:ss"
     )
 
     manager.close_connection()
