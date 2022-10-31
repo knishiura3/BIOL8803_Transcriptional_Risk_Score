@@ -12,3 +12,4 @@ dependencies:
   - r-irkernel
   - nb_conda_kernels
   - jupyter_contrib_nbextensions
+  - r-languageserver
