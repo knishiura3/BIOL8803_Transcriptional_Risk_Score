@@ -11,8 +11,10 @@ library(tictoc)
 suppressPackageStartupMessages(suppressWarnings({
     library(gwasglue)
     library(gassocplot)
+    library(dplyr)
     library(coloc)
     library(ggplot2)
+    library(httpgd)
 }))
 
 # Reference LD Panels
@@ -94,8 +96,7 @@ for (chromosome in 1:22) {
         upper <- pos_gwas + window_size
         chrpos <- paste0(chromosome, ":", lower, "-", upper)
 
-        # output path for saving figure
-        outfile <- glue("coloc_output/coloc_chr{chromosome}_pos{pos_gwas}_tophit{tophit}.png")
+
 
         out <- ieugwasr_to_coloc(
             id1 = as.character(gwas_dataset),
@@ -193,6 +194,7 @@ for (chromosome in 1:22) {
         # run coloc
         res <- coloc::coloc.abf(out[[1]], result[[1]])
 
+        H4 <- round(as.numeric(res$summary[["PP.H4.abf"]]), digits = 2)
 
         # API rejects requests if >500 rsids.
         if (length(out[[1]]$pos) >= 500) {
@@ -206,6 +208,9 @@ for (chromosome in 1:22) {
         }
         # show plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
+
+        # output path for saving figure
+        outfile <- glue("coloc_output/coloc_chr{chromosome}_pos{pos_gwas}_tophit{tophit}_H4{H4}.png")
 
         # # save plot w/ base R functions
         png(filename = outfile)
