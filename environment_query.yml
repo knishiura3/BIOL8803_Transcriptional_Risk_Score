@@ -18,3 +18,4 @@ dependencies:
   - r-arrangements
   - r-duckdb
   - r-arrow 
+  - rpy2
