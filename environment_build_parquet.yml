@@ -1,0 +1,14 @@
+name: build_parquet
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+
+dependencies:
+  - dask 
+  - pyarrow 
+  - python-duckdb
+  - notebook 
+  - nb_conda_kernels
+  - jupyter_contrib_nbextensions
