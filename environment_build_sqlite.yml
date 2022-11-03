@@ -1,0 +1,11 @@
+name: build
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - sqlite
+  - click 
+  - gzip
