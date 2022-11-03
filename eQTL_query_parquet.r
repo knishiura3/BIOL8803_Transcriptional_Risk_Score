@@ -16,10 +16,11 @@ suppressPackageStartupMessages(suppressWarnings({
 }))
 
 # Reference LD Panels
-# need to set this to wherever you have the LD panel stored
+#   need to set this to wherever you want the LD panel stored
 ld_path <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/ld_reference"
 
 # Copied from the documentation at https://mrcieu.github.io/gwasglue/index.html
+#
 # Updated 1000 genomes LD reference panels (multiple populations):
 # http://fileserve.mrcieu.ac.uk/ld/1kg.v3.tgz (1.5GB)
 #   <contents>/
@@ -93,12 +94,15 @@ for (chromosome in 1:22) {
         upper <- pos_gwas + window_size
         chrpos <- paste0(chromosome, ":", lower, "-", upper)
 
+        # output path for saving figure
+        outfile <- glue("coloc_output/coloc_chr{chromosome}_pos{pos_gwas}_tophit{tophit}.png")
+
         out <- ieugwasr_to_coloc(
             id1 = as.character(gwas_dataset),
             id2 = as.character(dummy_dataset),
             chrompos = as.character(chrpos),
             type1 = "quant",
-            type2 = "cc" # dummy dataset
+            # type2 = "cc" # dummy dataset
         )
         # drop dummy dataset2 from out
         out <- out[1]
@@ -189,16 +193,30 @@ for (chromosome in 1:22) {
         # run coloc
         res <- coloc::coloc.abf(out[[1]], result[[1]])
 
-        # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
-        # choices for ancestry are AMR, AFR, EAS, EUR, SAS
-        # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
-        temp <- coloc_to_gassocplot(out, bfile = paste0(ld_path, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
 
-        gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
+        # API rejects requests if >500 rsids.
+        if (length(out[[1]]$pos) >= 500) {
+            # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
+            # choices for ancestry are AMR, AFR, EAS, EUR, SAS
+            # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
+            temp <- coloc_to_gassocplot(out, bfile = paste0(ld_path, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+        } else {
+            # query the API if <500 rsids
+            temp <- coloc_to_gassocplot(out)
+        }
+        # show plot
+        theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
+
+        # # save plot w/ base R functions
+        png(filename = outfile)
+        plot(theplot)
+        dev.off()
+
+        # funciton to save plot to file (not working:  output is blank square)
+        # stack_assoc_plot_save(theplot, outfile, 2, width = 3, height = 3, dpi = 500)
 
         # stop timer
         toc(log = TRUE)
-        stop("all done for now") # exit script for debugging
     } # close loop over each gwas top hit
 } # close loop over each chromosome
 
