@@ -18,7 +18,7 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+
 ![Anaconda](https://img.shields.io/badge/Anaconda-%2344A833.svg?style=for-the-badge&logo=anaconda&logoColor=white)
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
@@ -127,11 +127,11 @@ To get a local copy up and running follow these simple example steps. -->
 <!-- This is an example of how to list things you need to use the software and how to install them. -->
 * anaconda (only tested on Ubuntu in Kenji's WSL2. Things might be different for Windows/Mac)
   ```
-  conda env create -f=/path/to/environment.yml -n <give env a name>
+  conda env create -f=/path/to/<env yml file>
   ```
 * apt
   ```
-  several libraries may need to be installed (e.g. sudo apt-get install liblzma-dev), but I didn't document it all
+  depending on your system, several libraries may need to be installed (e.g. libcurl, liblzma-dev, etc.)
   ```
 
 ### Installation
@@ -145,12 +145,19 @@ To get a local copy up and running follow these simple example steps. -->
 
 * R 
   ```
-  install.packages('languageserver', dependencies = TRUE)
-  install.packages('devtools', dependencies = TRUE)
-  devtools::install_github('IRkernel/IRkernel',dependencies = TRUE)
+  install.packages(c("devtools",
+    "languageserver",
+    "BiocManager",
+    "tidyverse",
+    "tictoc",
+    "httpgd"), dependencies = TRUE)
+  BiocManager::install(version = "3.14") 
+  devtools::install_github("IRkernel/IRkernel", dependencies = TRUE)
   IRkernel::installspec()
-  devtools::install_github("mrcieu/gwasglue")
-  install_github("jrs95/gassocplot",dependencies=TRUE,upgrade="always")
+  remotes::install_github("MRCIEU/gwasglue", build = TRUE, dependencies = TRUE)
+  remotes::install_github("jrs95/gassocplot", build = TRUE, dependencies = TRUE)
+  install.packages("arrow", repos = "https://packagemanager.rstudio.com/all/\_\_linux\_\_/focal/latest")
+
   ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -158,7 +165,7 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/main/coloc_tutorial_parallel.ipynb for usage
+Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for example usage
 
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
 
