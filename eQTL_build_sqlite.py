@@ -41,7 +41,11 @@ class eqtl_DB:
         self.cursor.execute(table_sql)
         self.connection.commit()
 
-        fh = gzip.open(input_file_eQTL, "rt")
+        # if the input file ends with .gz, use gzip.open. otherwise, just use open
+        if input_file_eQTL.endswith(".gz"):
+            fh = gzip.open(input_file_eQTL, "rt")
+        else:
+            fh = open(input_file_eQTL, "rt")
 
         # skip header
         fh.readline()
@@ -57,16 +61,16 @@ class eqtl_DB:
             Pvalue = float(segs[0])
             SNP = str(segs[1])
             SNPChr = int(segs[2])
-            # SNPPos = int(segs[3])
+            SNPPos = int(segs[3])
             # AssessedAllele = str(segs[4])
             # OtherAllele = str(segs[5])
-            # Zscore = float(segs[6])
+            Zscore = float(segs[6])
             # Gene = str(segs[7])
             # GeneSymbol = str(segs[8])
             # GeneChr = int(segs[9])
             # GenePos = int(segs[10])
             # NrCohorts = int(segs[11])
-            # NrSamples = int(segs[12])
+            NrSamples = int(segs[12])
             # FDR = float(segs[13])
             # BonferroniP = float(segs[14])
 
@@ -90,11 +94,11 @@ class eqtl_DB:
 
             current_lines.append(row)
             count += 1
-            # print count every 1000 lines
-            if count % 1000 == 0:
+            # print count every 100000 lines
+            if count % 100000 == 0:
                 print(f"Inserted {count} rows into eqtlTable", end="\r", flush=True)
 
-            if len(current_lines) >= 10**6:
+            if len(current_lines) >= 10**7:
                 self.cursor.executemany(
                     "INSERT OR REPLACE INTO eqtlTable VALUES (?, ?, ?, ?, ?, ?)",
                     # "INSERT OR REPLACE INTO eqtlTable VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -123,20 +127,6 @@ class eqtl_DB:
         # create index to speed up filtering
         self.cursor.execute(
             "CREATE INDEX IF NOT EXISTS pos_index ON eqtlTable (SNPChr, SNPPos)"
-        )
-        self.connection.commit()
-
-    def delete_duplicate_rsid_in_eqtlTable_keep_lowest_Pvalue(self):
-        # duplicate deletion logic:
-        # 1. partition by SNP
-        # 2. for each partition, sort by Pvalue, and use absolute value of Zscore as tiebreaker
-        # 3. keep the first row in each partition
-        #
-        # Note:
-        #   number of unique rsid in eqtlTable should be 8932843
-        #   unpigz -c 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz | awk '{print $2}' | tail -n+2 | sort | uniq | wc -l
-        self.cursor.execute(
-            "DELETE FROM eqtlTable WHERE ROWID IN (SELECT ROWID FROM (WITH cte AS (SELECT *, ABS(Zscore) AS absZ, ROWID, ROW_NUMBER() OVER (PARTITION BY SNP ORDER BY Pvalue ASC, ABS(zscore) DESC) AS Row_Number FROM eqtlTable) SELECT * FROM cte WHERE Row_Number <>1))"
         )
         self.connection.commit()
 
@@ -170,17 +160,17 @@ class eqtl_DB:
             row = (
                 str(segs[0]),
                 int(segs[1]),
-                int(segs[1]),
+                int(segs[2]),
                 float(segs[8]),
             )
 
             current_lines.append(row)
             count += 1
-            # print count every 1000 lines
-            if count % 1000 == 0:
+            # print count every 100000 lines
+            if count % 100000 == 0:
                 print(f"Inserted {count} rows into mafTable", end="\r", flush=True)
 
-            if len(current_lines) >= 10**6:
+            if len(current_lines) >= 10**7:
                 self.cursor.executemany(
                     "INSERT OR REPLACE INTO mafTable VALUES (?, ?, ?, ?)",
                     current_lines,
@@ -217,8 +207,8 @@ class eqtl_DB:
     "-i",
     type=click.Path(exists=True),
     help="Input eQTL file",
-    # default="2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz",
-    default="subset.txt.gz",
+    default="2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt",
+    # default="subset.txt.gz",
 )
 @click.option(
     "--output_db_name",

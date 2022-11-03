@@ -1,4 +1,4 @@
-name: BIOL8803
+name: query
 channels:
   - conda-forge
   - anaconda
@@ -6,10 +6,15 @@ channels:
   - defaults
   - r
 dependencies:
-  - r-base=>4.1
+  - r-base>=4.1
+  - r-devtools=2.4.5
   - r-coloc>=5.1
   - notebook 
-  - r-irkernel
   - nb_conda_kernels
   - jupyter_contrib_nbextensions
-  - r-languageserver
+  - r-rcppeigen>=0.3.3.9.1
+  - mpfr
+  - r-gmp
+  - r-arrangements
+  - r-duckdb
+  - r-arrow 
