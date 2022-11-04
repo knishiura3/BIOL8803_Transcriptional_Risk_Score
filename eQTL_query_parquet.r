@@ -222,7 +222,7 @@ for (chromosome in 1:22) {
 
         base_dir <- glue("plots/{as.integer(window_size)}")
         # output path for saving figure
-        outfile <- glue(base_dir, "/gwas{sprintf('%03d', tophit)}_chr{chromosome}_pos{pos_gwas}_H4_{H4}.png")
+        outfile <- glue(base_dir, "/chr{chromosome}_gwas{sprintf('%03d', tophit)}_pos{pos_gwas}_H4_{H4}.png")
         # if it doesn't exist, create a directory named coloc_output
         if (!dir.exists(base_dir)) {
             dir.create(base_dir, recursive = TRUE)
