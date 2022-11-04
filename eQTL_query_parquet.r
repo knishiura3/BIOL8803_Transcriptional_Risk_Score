@@ -62,7 +62,7 @@ ds_eqtlMAF <- arrow::open_dataset(dir_eqtlmaf, partitioning = "hg19_chr")
 if (exists("con")) {
     duckdb_unregister(con, "eqtlTable")
     duckdb_unregister(con, "mafTable")
-    dbDisconnect(con, shutdown = TRUE)
+    dbDisconnect(con)
 }
 
 # connect duckdb to open parquet files
@@ -71,6 +71,10 @@ con <- dbConnect(duckdb::duckdb())
 # register the datasets as DuckDB table, and give it a name
 duckdb::duckdb_register_arrow(con, "eqtlTable", ds_eQTL)
 duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
+
+# write header line to output file
+# write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
+write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = "coloc_log.txt", append = FALSE)
 
 # define window size for coloc
 window_size <- 100000
@@ -95,8 +99,6 @@ for (chromosome in 1:22) {
         lower <- pos_gwas - window_size
         upper <- pos_gwas + window_size
         chrpos <- paste0(chromosome, ":", lower, "-", upper)
-
-
 
         out <- ieugwasr_to_coloc(
             id1 = as.character(gwas_dataset),
@@ -194,7 +196,16 @@ for (chromosome in 1:22) {
         # run coloc
         res <- coloc::coloc.abf(out[[1]], result[[1]])
 
-        H4 <- round(as.numeric(res$summary[["PP.H4.abf"]]), digits = 2)
+        PP_H4 <- res$summary[["PP.H4.abf"]]
+
+        # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
+        write(paste0(Sys.time(), "\t", chromosome, "\t", pos_gwas, "\t", length(out[[1]]$pos), "\t", PP_H4), file = "coloc_log.txt", append = TRUE)
+
+        if (PP_H4 < 0.50) {
+            print(glue("PP_H4 < 0.50 for eQTLs near GWAS locus chr{chromosome}:pos{pos_gwas}, skipping and continuing to next GWAS top hit"))
+            next
+        }
+        H4 <- round(as.numeric(PP_H4), digits = 2)
 
         # API rejects requests if >500 rsids.
         if (length(out[[1]]$pos) >= 500) {
@@ -209,15 +220,19 @@ for (chromosome in 1:22) {
         # show plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
 
+        base_dir <- glue("plots/{as.integer(window_size)}")
         # output path for saving figure
-        outfile <- glue("coloc_output/coloc_chr{chromosome}_pos{pos_gwas}_tophit{tophit}_H4{H4}.png")
-
+        outfile <- glue(base_dir, "/gwas{sprintf('%03d', tophit)}_chr{chromosome}_pos{pos_gwas}_H4_{H4}.png")
+        # if it doesn't exist, create a directory named coloc_output
+        if (!dir.exists(base_dir)) {
+            dir.create(base_dir, recursive = TRUE)
+        }
         # # save plot w/ base R functions
         png(filename = outfile)
         plot(theplot)
         dev.off()
 
-        # funciton to save plot to file (not working:  output is blank square)
+        # function to save plot to file (not working:  output is blank square)
         # stack_assoc_plot_save(theplot, outfile, 2, width = 3, height = 3, dpi = 500)
 
         # stop timer
