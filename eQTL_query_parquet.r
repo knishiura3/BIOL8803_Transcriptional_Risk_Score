@@ -72,12 +72,14 @@ con <- dbConnect(duckdb::duckdb())
 duckdb::duckdb_register_arrow(con, "eqtlTable", ds_eQTL)
 duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
 
-# write header line to output file
-# write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
-write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = "coloc_log.txt", append = FALSE)
 
 # define window size for coloc
-window_size <- 100000
+window_size <- as.integer(500000)
+
+# write header line to output file
+# write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
+write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = glue("coloc_log_window_{window_size}.txt"), append = FALSE)
+
 
 # to keep memory usage in check, work on one chromosome at a time
 for (chromosome in 1:22) {
@@ -151,10 +153,7 @@ for (chromosome in 1:22) {
             #   beta = Zscore / sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
             #   betaSE:  betaSE = 1 / sqrt(2 * Pvalue * (1 - Pvalue) * (NrSamples + Zscore**2))
             #   varbeta:  betaSE**2
-            dplyr::mutate(
-                beta = z / sqrt(2 * pvalues * (1 - pvalues) * (N + z**2)),
-                varbeta = (1 / sqrt(2 * pvalues * (1 - pvalues) * (N + z**2)))**2, .before = snp
-            ) %>%
+            # create column of nulls for beta/varbeta
             dplyr::mutate(pos = as.integer(pos))
 
         # strip name from out for compatibility with join function
@@ -166,9 +165,9 @@ for (chromosome in 1:22) {
 
         # separate joined dataframe back out to gwas and eqtl datasets
         result <- dplyr::select(joined, ends_with("eqtl"), pos) %>%
-            dplyr::rename(pvalues = pvalues.eqtl, N = N.eqtl, MAF = MAF.eqtl, beta = beta.eqtl, varbeta = varbeta.eqtl, snp = snp.eqtl, z = z.eqtl, chr = chr.eqtl)
-        out <- dplyr::select(joined, ends_with("gwas"), pos, id) %>%
-            dplyr::rename(pvalues = pvalues.gwas, N = N.gwas, MAF = MAF.gwas, beta = beta.gwas, varbeta = varbeta.gwas, snp = snp.gwas, z = z.gwas, chr = chr.gwas)
+            dplyr::rename(pvalues = pvalues.eqtl, N = N.eqtl, MAF = MAF.eqtl, snp = snp.eqtl, z = z.eqtl, chr = chr.eqtl)
+        out <- dplyr::select(joined, ends_with("gwas"), beta, varbeta, pos, id) %>%
+            dplyr::rename(pvalues = pvalues.gwas, N = N.gwas, MAF = MAF.gwas, snp = snp.gwas, z = z.gwas, chr = chr.gwas)
 
         # convert dataframe to nested list of lists
         result <- as.list(result)
@@ -182,7 +181,19 @@ for (chromosome in 1:22) {
 
         # extract list of rsids to feed to coloc_to_gassocplot()
         rsid_list <- out[["snp"]]
-        result <- result[c("pvalues", "N", "MAF", "beta", "varbeta", "type", "snp", "z", "chr", "pos", "id")]
+        result <- result[c("pvalues", "N", "MAF", "type", "snp", "z", "chr", "pos", "id")]
+
+
+        # if there are any null values in result print the NULL values
+        # if (any(is.null(result$beta))) {
+        #     print("NULL values in result:")
+        #     print(result[is.null(result$beta)])
+        # }
+        # if (any(is.null(out$beta))) {
+        #     print("NULL values in out:")
+        #     print(out[is.null(out$beta)])
+        # }
+
         result <- list(result)
         out <- list(out)
 
@@ -199,7 +210,7 @@ for (chromosome in 1:22) {
         PP_H4 <- res$summary[["PP.H4.abf"]]
 
         # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
-        write(paste0(Sys.time(), "\t", chromosome, "\t", pos_gwas, "\t", length(out[[1]]$pos), "\t", PP_H4), file = "coloc_log.txt", append = TRUE)
+        write(paste0(Sys.time(), "\t", chromosome, "\t", pos_gwas, "\t", length(out[[1]]$pos), "\t", PP_H4), file = glue("coloc_log_window_{window_size}.txt"), append = TRUE)
 
         if (PP_H4 < 0.50) {
             print(glue("PP_H4 < 0.50 for eQTLs near GWAS locus chr{chromosome}:pos{pos_gwas}, skipping and continuing to next GWAS top hit"))
