@@ -80,9 +80,16 @@ window_size <- as.integer(500000)
 # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
 write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = glue("coloc_log_window_{window_size}.txt"), append = FALSE)
 
+debug_mode=TRUE
 
 # to keep memory usage in check, work on one chromosome at a time
 for (chromosome in 1:22) {
+    if (debug_mode) {
+        if (chromosome < 6) {
+            next
+        }
+    }
+
     # get the top GWAS hits for the current chromosome
     top <- ieugwasr::tophits("ieu-b-30") %>%
         filter(chr == chromosome) %>%
@@ -92,15 +99,32 @@ for (chromosome in 1:22) {
 
     # iterate over gwas top hits for current chromosome
     for (tophit in seq_len(nrow(top))) {
+        
+        # if (debug_mode) {
+        #     if (tophit < 15) {
+        #         next
+        #     }
+        # }
+        
         # start timer
-        tic("time elapsed for the following GWAS top hit:")
+        tic(glue("time elapsed for the {tophit}-th following GWAS top hit:"))
 
         print(top[tophit, ])
+        # print the rsid field
+        print(top[tophit, "rsid"])
 
         pos_gwas <- top[tophit, ]$position
         lower <- pos_gwas - window_size
+        if (lower < 0) {
+            lower <- 0
+        }
         upper <- pos_gwas + window_size
         chrpos <- paste0(chromosome, ":", lower, "-", upper)
+
+        # print the message below if debug_mode is TRUE
+        if (debug_mode) {
+            print("starting ieugwasr_to_coloc:")
+        }
 
         out <- ieugwasr_to_coloc(
             id1 = as.character(gwas_dataset),
@@ -133,6 +157,11 @@ for (chromosome in 1:22) {
             WHERE hg19_chr = {chromosome}
             "
         )
+
+        # print the message below if debug_mode is TRUE
+        if (debug_mode) {
+            print("executing SQL queries:")
+        }
 
         # execute the SQL queries
         result_eqtl <- dbGetQuery(con, subquery_eqtl)
@@ -204,6 +233,11 @@ for (chromosome in 1:22) {
         out <- list(out[[1]], result[[1]])
         names(out) <- c("dataset1", "dataset2")
 
+        # print the message below if debug_mode is TRUE
+        if (debug_mode) {
+            print("running Coloc:")
+        }
+
         # run coloc
         res <- coloc::coloc.abf(out[[1]], result[[1]])
 
@@ -217,6 +251,11 @@ for (chromosome in 1:22) {
             next
         }
         H4 <- round(as.numeric(PP_H4), digits = 2)
+
+                # print the message below if debug_mode is TRUE
+        if (debug_mode) {
+            print("running coloc_to_gassocplot:")
+        }
 
         # API rejects requests if >500 rsids.
         if (length(out[[1]]$pos) >= 500) {
