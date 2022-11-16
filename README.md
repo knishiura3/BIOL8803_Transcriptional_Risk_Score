@@ -125,10 +125,12 @@ To get a local copy up and running follow these simple example steps. -->
 ### Prerequisites
 
 <!-- This is an example of how to list things you need to use the software and how to install them. -->
-* anaconda (only tested on Ubuntu in Kenji's WSL2. Things might be different for Windows/Mac)
+* anaconda/mamba (only tested on Ubuntu 22.04.1 LTS in WSL2. Things might be different for Windows/Mac/non-virtual Linux)
   ```
   conda env create -f=/path/to/<env yml file>
   ```
+  Note:  use different environments for building the db vs querying the db.
+
 * apt
   ```
   depending on your system, several libraries may need to be installed (e.g. libcurl, liblzma-dev, etc.)
