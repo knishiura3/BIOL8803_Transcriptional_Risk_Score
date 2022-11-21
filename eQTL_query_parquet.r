@@ -46,9 +46,10 @@ ld_path <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/ld_referenc
 #   1kg European reference panel for LD (legacy):
 #   http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz
 
-# coloc datasets
+# study ID (needs to have value assigned by user)
 gwas_dataset <- "ieu-b-30"
 dummy_dataset <- "ieu-a-7"
+# query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
 dir_eqtl <- "eqtls"
@@ -74,7 +75,7 @@ duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
 
 
 # define window size for coloc
-window_size <- as.integer(1000000)
+window_size <- as.integer(500000)
 
 # write header line to output file
 # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
