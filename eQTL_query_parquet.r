@@ -74,13 +74,13 @@ duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
 
 
 # define window size for coloc
-window_size <- as.integer(500000)
+window_size <- as.integer(1000000)
 
 # write header line to output file
 # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
 write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = glue("coloc_log_window_{window_size}.txt"), append = FALSE)
 
-debug_mode=TRUE
+debug_mode=FALSE
 
 # to keep memory usage in check, work on one chromosome at a time
 for (chromosome in 1:22) {
@@ -115,6 +115,8 @@ for (chromosome in 1:22) {
 
         pos_gwas <- top[tophit, ]$position
         lower <- pos_gwas - window_size
+
+        # set floor of 0 for lower bound of window
         if (lower < 0) {
             lower <- 0
         }
@@ -267,7 +269,7 @@ for (chromosome in 1:22) {
             # query the API if <500 rsids
             temp <- coloc_to_gassocplot(out)
         }
-        # show plot
+        # construct plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
 
         base_dir <- glue("plots/{as.integer(window_size)}")
