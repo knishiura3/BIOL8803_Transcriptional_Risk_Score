@@ -19,7 +19,7 @@ suppressPackageStartupMessages(suppressWarnings({
 
 # Reference LD Panels
 #   need to set this to wherever you want the LD panel stored
-ld_path <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/ld_reference"
+dir_ld <- "/projects/team1/db/ld_reference"
 
 # Copied from the documentation at https://mrcieu.github.io/gwasglue/index.html
 #
@@ -52,8 +52,8 @@ dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
-dir_eqtl <- "eqtls"
-dir_eqtlmaf <- "eqtl_MAF"
+dir_eqtl <- "/projects/team1/db/eqtls"
+dir_eqtlmaf <- "/projects/team1/db/eqtl_MAF"
 
 # open parquet files
 ds_eQTL <- arrow::open_dataset(dir_eqtl, partitioning = "SNPChr")
@@ -265,7 +265,7 @@ for (chromosome in 1:22) {
             # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
             # choices for ancestry are AMR, AFR, EAS, EUR, SAS
             # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
-            temp <- coloc_to_gassocplot(out, bfile = paste0(ld_path, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+            temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
         } else {
             # query the API if <500 rsids
             temp <- coloc_to_gassocplot(out)
