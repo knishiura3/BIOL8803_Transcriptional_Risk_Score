@@ -273,14 +273,14 @@ for (chromosome in 1:22) {
         # construct plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
 
-        base_dir <- glue("plots/{as.integer(window_size)}")
+        base_dir <- glue("/projects/team1/plots/{as.integer(window_size)}")
         # output path for saving figure
         outfile <- glue(base_dir, "/chr{chromosome}_gwas{sprintf('%03d', tophit)}_pos{pos_gwas}_H4_{H4}.png")
-        # if it doesn't exist, create a directory named coloc_output
+        # if it doesn't exist, create directory
         if (!dir.exists(base_dir)) {
             dir.create(base_dir, recursive = TRUE)
         }
-        # # save plot w/ base R functions
+        # save plot w/ base R functions
         png(filename = outfile)
         plot(theplot)
         dev.off()
@@ -289,7 +289,7 @@ for (chromosome in 1:22) {
         # stack_assoc_plot_save(theplot, outfile, 2, width = 3, height = 3, dpi = 500)
 
         # stop timer
-        toc(log = TRUE)
+        # toc(log = TRUE)
     } # close loop over each gwas top hit
 } # close loop over each chromosome
 
