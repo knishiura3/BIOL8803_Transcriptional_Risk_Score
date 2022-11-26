@@ -47,7 +47,7 @@ dir_ld <- "/projects/team1/db/ld_reference"
 #   http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz
 
 # study ID (needs to have value assigned by user)
-gwas_dataset <- "ieu-b-30"
+#gwas_dataset <- "ieu-b-30"
 dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
@@ -92,7 +92,7 @@ for (chromosome in 1:22) {
     }
 
     # get the top GWAS hits for the current chromosome
-    top <- ieugwasr::tophits("ieu-b-30") %>%
+    top <- ieugwasr::tophits(gwas_dataset) %>%
         filter(chr == chromosome) %>%
         arrange(p)
     print(paste0(dim(top)[1], " GWAS top hits identified on chromosome ", chromosome))
