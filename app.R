@@ -7,7 +7,7 @@ library(shinythemes)
 library(arrow)
 library(duckdb)
 library(fs)
-library(tidyverse)
+library(tidyverse) #Error here
 library(DBI)
 library(glue)
 library(tictoc)
@@ -42,12 +42,6 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       p("This web app takes in eQTL data and GWAS hits to generate a plot of LD variants."),
       #("This app takes in eQTL data and GWAS hits to generate a plot of colocalized variants."),
       
-      # Input: Slider for the window size IF IMPLEMENTED
-      #sliderInput(inputId = "window",
-                  #label = "Window size:",
-                 # min = 1,
-                 # max = 50,
-                 # value = 30),
       
       #Input: Allow user to select one of the eQTL mapping databases
       #Find a light way to include the blood database in the app.
@@ -63,8 +57,7 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       ),
       
       #Input: allow user text entry and provide link to GWAS IDs.
-      textInput("gwasID", "Enter a GWAS ID:", value = "", width = NULL, placeholder = "ukb-b-732"),
-      
+      textInput("gwasID", "Enter a GWAS ID:", value = "", width = NULL, placeholder = "ex: ieu-b-30"),
       tags$a(href="https://gwas.mrcieu.ac.uk/datasets/?gwas_id__icontains=ukb-b&sort=-gwas_id&page=73", "Find a GWAS ID at this link!")
       
       
@@ -77,6 +70,7 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       tabsetPanel(type = "tabs",
                   tabPanel("Results", 
                            textOutput("resultHeader"),
+                           imageOutput("peaks")
                            #plotOutput(outputId = "distPlot")),
                   ),
                       
@@ -90,13 +84,13 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       ),
       
       
-      #Output: Score and Histogram.
-      #p("Here's where the results will go!")
-      #Say something like, colocalized results of [GWASID].
+      #Display plot of LD peaks in the results tab.
+      #imageOutput("peaks")
       
       
-      #Display plot of LD peaks.
-      imageOutput("peaks")
+      #Offer method to download a readout of the results.
+      # Button
+      #downloadButton("downloadData", "Download")
       
     )
   )
@@ -116,11 +110,15 @@ server <- function(input, output) {
   output$resultHeader <- renderText({paste("Colocalized results of ", input$gwasID, sep = "")})
   #output$resultHeader <- renderText({"Hello!"})
   
+  #Save gwasID as a reactive variable so only it is recalculated within the algorithm.
+  
+  
+  
   #KENJI/COLIN Code below
-  # Reference LD Panels
+  #Reference LD Panels
   #   need to set this to wherever you want the LD panel stored
   dir_ld <- "/out"
-  
+
   # Copied from the documentation at https://mrcieu.github.io/gwasglue/index.html
   #
   # Updated 1000 genomes LD reference panels (multiple populations):
@@ -142,44 +140,44 @@ server <- function(input, output) {
   #   âââ SAS.bim
   #   âââ SAS.fam
 
-  
+
   # study ID (needs to have value assigned by user)
   gwas_dataset <- input$gwasID
   dummy_dataset <- "ieu-a-7"
   # query API with study ID
   gwasinfo(id = as.character(gwas_dataset))
-  
-  dir_eqtl <- "/projects/team1/db/eqtls"
-  dir_eqtlmaf <- "/projects/team1/db/eqtl_MAF"
-  
+
+  dir_eqtl <- "data/eqtls"
+  dir_eqtlmaf <- "data/eqtl_MAF"
+
   # open parquet files
   ds_eQTL <- arrow::open_dataset(dir_eqtl, partitioning = "SNPChr")
   ds_eqtlMAF <- arrow::open_dataset(dir_eqtlmaf, partitioning = "hg19_chr")
-  
+
   # clean up if previous connection if still open (only happens if script is interrupted)
   if (exists("con")) {
     duckdb_unregister(con, "eqtlTable")
     duckdb_unregister(con, "mafTable")
     dbDisconnect(con)
   }
-  
+
   # connect duckdb to open parquet files
   con <- dbConnect(duckdb::duckdb())
-  
+
   # register the datasets as DuckDB table, and give it a name
   duckdb::duckdb_register_arrow(con, "eqtlTable", ds_eQTL)
   duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
-  
-  
+
+
   # define window size for coloc
   window_size <- as.integer(500000)
-  
+
   # write header line to output file
   # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
   write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = glue("coloc_log_window_{window_size}.txt"), append = FALSE)
-  
+
   debug_mode=FALSE
-  
+
   # to keep memory usage in check, work on one chromosome at a time
   for (chromosome in 1:22) {
     if (debug_mode) {
@@ -187,45 +185,45 @@ server <- function(input, output) {
         next
       }
     }
-    
+
     # get the top GWAS hits for the current chromosome
     top <- ieugwasr::tophits(input$gwasID) %>%
       filter(chr == chromosome) %>%
       arrange(p)
     print(paste0(dim(top)[1], " GWAS top hits identified on chromosome ", chromosome))
-    
-    
+
+
     # iterate over gwas top hits for current chromosome
     for (tophit in seq_len(nrow(top))) {
-      
+
       # if (debug_mode) {
       #     if (tophit < 15) {
       #         next
       #     }
       # }
-      
+
       # start timer
       tic(glue("time elapsed for the {tophit}-th following GWAS top hit:"))
-      
+
       print(top[tophit, ])
       # print the rsid field
       print(top[tophit, "rsid"])
-      
+
       pos_gwas <- top[tophit, ]$position
       lower <- pos_gwas - window_size
-      
+
       # set floor of 0 for lower bound of window
       if (lower < 0) {
         lower <- 0
       }
       upper <- pos_gwas + window_size
       chrpos <- paste0(chromosome, ":", lower, "-", upper)
-      
+
       # print the message below if debug_mode is TRUE
       if (debug_mode) {
         print("starting ieugwasr_to_coloc:")
       }
-      
+
       out <- ieugwasr_to_coloc(
         id1 = as.character(gwas_dataset),
         id2 = as.character(dummy_dataset),
@@ -235,7 +233,7 @@ server <- function(input, output) {
       )
       # drop dummy dataset2 from out
       out <- out[1]
-      
+
       # define the SQL queries
       subquery_eqtl <- glue::glue(
         # window function query for top eQTLs, defined as:
@@ -250,23 +248,23 @@ server <- function(input, output) {
             WHERE row = 1
             "
       )
-      
+
       subquery_maf <- glue::glue(
         "
             SELECT * FROM mafTable
             WHERE hg19_chr = {chromosome}
             "
       )
-      
+
       # print the message below if debug_mode is TRUE
       if (debug_mode) {
         print("executing SQL queries:")
       }
-      
+
       # execute the SQL queries
       result_eqtl <- dbGetQuery(con, subquery_eqtl)
       result_maf <- dbGetQuery(con, subquery_maf)
-      
+
       # left join the eQTL and MAF tables
       result <- left_join(result_eqtl, result_maf,
                           by = c("SNPChr" = "hg19_chr", "SNPPos" = "hg19_pos"),
@@ -284,35 +282,35 @@ server <- function(input, output) {
         #   varbeta:  betaSE**2
         # create column of nulls for beta/varbeta
         dplyr::mutate(pos = as.integer(pos))
-      
+
       # strip name from out for compatibility with join function
       names(out) <- NULL
       out <- as.data.frame(out)
-      
+
       # ensure that only loci present in both GWAS and eQTL datasets are considered
       joined <- inner_join(out, result, by = "pos", suffix = c(".gwas", ".eqtl"))
-      
+
       # separate joined dataframe back out to gwas and eqtl datasets
       result <- dplyr::select(joined, ends_with("eqtl"), pos) %>%
         dplyr::rename(pvalues = pvalues.eqtl, N = N.eqtl, MAF = MAF.eqtl, snp = snp.eqtl, z = z.eqtl, chr = chr.eqtl)
       out <- dplyr::select(joined, ends_with("gwas"), beta, varbeta, pos, id) %>%
         dplyr::rename(pvalues = pvalues.gwas, N = N.gwas, MAF = MAF.gwas, snp = snp.gwas, z = z.gwas, chr = chr.gwas)
-      
+
       # convert dataframe to nested list of lists
       result <- as.list(result)
       out <- as.list(out)
-      
+
       # note:  "type" and "id" fields are NOT lists, just strings
       result$type <- "quant"
       out$type <- "quant"
       result$id <- "eQTLGen_cis-eQTL"
       out$id <- out$id[1]
-      
+
       # extract list of rsids to feed to coloc_to_gassocplot()
       rsid_list <- out[["snp"]]
       result <- result[c("pvalues", "N", "MAF", "type", "snp", "z", "chr", "pos", "id")]
-      
-      
+
+
       # if there are any null values in result print the NULL values
       # if (any(is.null(result$beta))) {
       #     print("NULL values in result:")
@@ -322,41 +320,41 @@ server <- function(input, output) {
       #     print("NULL values in out:")
       #     print(out[is.null(out$beta)])
       # }
-      
+
       result <- list(result)
       out <- list(out)
-      
+
       # add name to outer list to match ieugwasr_to_coloc format
       names(result) <- "dataset2"
-      
+
       # assemble gwas and eqtl datasets into one 'out' object in expected format
       out <- list(out[[1]], result[[1]])
       names(out) <- c("dataset1", "dataset2")
-      
+
       # print the message below if debug_mode is TRUE
       if (debug_mode) {
         print("running Coloc:")
       }
-      
+
       # run coloc
       res <- coloc::coloc.abf(out[[1]], result[[1]])
-      
+
       PP_H4 <- res$summary[["PP.H4.abf"]]
-      
+
       # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
       write(paste0(Sys.time(), "\t", chromosome, "\t", pos_gwas, "\t", length(out[[1]]$pos), "\t", PP_H4), file = glue("coloc_log_window_{window_size}.txt"), append = TRUE)
-      
+
       if (PP_H4 < 0.50) {
         print(glue("PP_H4 < 0.50 for eQTLs near GWAS locus chr{chromosome}:pos{pos_gwas}, skipping and continuing to next GWAS top hit"))
         next
       }
       H4 <- round(as.numeric(PP_H4), digits = 2)
-      
+
       # print the message below if debug_mode is TRUE
       if (debug_mode) {
         print("running coloc_to_gassocplot:")
       }
-      
+
       # API rejects requests if >500 rsids.
       if (length(out[[1]]$pos) >= 500) {
         # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
@@ -369,7 +367,7 @@ server <- function(input, output) {
       }
       # construct plot
       theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
-      
+
       base_dir <- glue("/projects/team1/plots/{as.integer(window_size)}")
       # output path for saving figure
       outfile <- glue(base_dir, "/chr{chromosome}_gwas{sprintf('%03d', tophit)}_pos{pos_gwas}_H4_{H4}.png")
@@ -381,15 +379,15 @@ server <- function(input, output) {
       png(filename = outfile)
       plot(theplot)
       dev.off()
-      
+
       # function to save plot to file (not working:  output is blank square)
       # stack_assoc_plot_save(theplot, outfile, 2, width = 3, height = 3, dpi = 500)
-      
+
       # stop timer
       # toc(log = TRUE)
     } # close loop over each gwas top hit
   } # close loop over each chromosome
-  
+
   # clean up
   duckdb_unregister(con, "eqtlTable")
   duckdb_unregister(con, "mafTable")
@@ -398,11 +396,20 @@ server <- function(input, output) {
   #COLIN/KENJI CODE ABOVE
   
   #Output the LD plot produced as an image.
-  #output$peaks <- renderImage({
-    
-    
+  #output$peaks <- renderImage({first part is expression outputted as a list.
     
   #})
+  
+  #Create Download Handler to provide results
+  # output$downloadData <- downloadHandler(
+  #   filename = function() {
+  #     paste(input$dataset, ".csv", sep = "")
+  #   },
+  #   content = function(file) {
+  #     write.csv(datasetInput(), file, row.names = FALSE)
+  #   }
+  # )
+  # 
   
 }
   
