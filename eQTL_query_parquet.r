@@ -49,7 +49,7 @@ dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
-dir_eqtl <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtls"
+dir_eqtl <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/eqtls_merged"
 dir_eqtlmaf <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtl_MAF"
 
 eqtl_outdir <- "top_eqtls/"
@@ -199,7 +199,7 @@ for (chromosome in 1:22) {
             dplyr::rename(pvalues = pvalues.eqtl, N = N.eqtl, MAF = MAF.eqtl, snp = snp.eqtl, z = z.eqtl, chr = chr.eqtl)
         out <- dplyr::select(joined, ends_with("gwas"), beta, varbeta, pos, id) %>%
             dplyr::rename(pvalues = pvalues.gwas, N = N.gwas, MAF = MAF.gwas, snp = snp.gwas, z = z.gwas, chr = chr.gwas)
-
+  
         # convert dataframe to nested list of lists
         result <- as.list(result)
         out <- as.list(out)
@@ -261,7 +261,7 @@ for (chromosome in 1:22) {
         top_eqtl_table <- result_eqtl %>%
             dplyr::filter(Pvalue == min_pval) 
         
-        str(top_eqtl_table)
+        # str(top_eqtl_table)
 
         # if it doesn't exist, create directory
         if (!dir.exists(eqtl_outdir)) {
@@ -280,7 +280,7 @@ for (chromosome in 1:22) {
         }
 
         # API rejects requests if >500 rsids, so need to run plink locally
-        if (length(out[[1]]$pos) >= 500) {
+        if (length(out[[2]]$pos) >= 500) {
             print("too many rsids, running plink locally")
             # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
             # choices for ancestry are AMR, AFR, EAS, EUR, SAS
