@@ -70,8 +70,12 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       tabsetPanel(type = "tabs",
                   tabPanel("Results", 
                            textOutput("resultHeader"),
-                           imageOutput("peaks")
-                           #plotOutput(outputId = "distPlot")),
+                           imageOutput("peaks"),
+                           #box(uiOutput("peaks"))
+                           
+                           #Offer method to download a readout of the results.
+                           # Button
+                           downloadButton("downloadData", "Download")
                   ),
                       
                   tabPanel("About", p("This app reads in "),
@@ -80,17 +84,13 @@ ui <- fluidPage(theme = shinytheme("superhero"),
                            #img(src = "")
                   ),
                   tabPanel("Datasets", p(align = "center", "The primary eQTL database is __, and that can be found along with more supplementary info on our Github page.")),
-                  tabPanel("Contact Us", p("This R Shiny Web App was developed by a team of Georgia Institute of Technology Students: Andy Chea, Colin Naughton, Kenji Nishiura, and Jasmyn Pellebon. You can reach us at..."))
+                  tabPanel("Contact Us", p("This R Shiny Web App was developed by a team of Georgia Institute of Technology students: Andy Chea, Colin Naughton, Kenji Nishiura, and Jasmyn Pellebon. You can reach us at...")
+                           )
       ),
       
       
       #Display plot of LD peaks in the results tab.
       #imageOutput("peaks")
-      
-      
-      #Offer method to download a readout of the results.
-      # Button
-      #downloadButton("downloadData", "Download")
       
     )
   )
@@ -156,6 +156,7 @@ server <- function(input, output) {
     
     dir_eqtl <- "data/eqtls"
     dir_eqtlmaf <- "data/eqtl_MAF"
+    eqtl_outdir <- "top_eqtls/"
     
     # open parquet files
     ds_eQTL <- arrow::open_dataset(dir_eqtl, partitioning = "SNPChr")
@@ -214,7 +215,7 @@ server <- function(input, output) {
         
         print(top[tophit, ])
         # print the rsid field
-        print(top[tophit, "rsid"])
+        #print(top[tophit, "rsid"])
         
         pos_gwas <- top[tophit, ]$position
         lower <- pos_gwas - window_size
@@ -357,25 +358,46 @@ server <- function(input, output) {
         }
         H4 <- round(as.numeric(PP_H4), digits = 2)
         
+        # get the minimum Pvalue from the eQTL table
+        min_pval <- min(result_eqtl$Pvalue)
+        # get the rsids for all the rows tied for the minimum Pvalue
+        top_eqtl_table <- result_eqtl %>%
+          dplyr::filter(Pvalue == min_pval) 
+        
+        str(top_eqtl_table)
+        
+        # if it doesn't exist, create directory
+        if (!dir.exists(eqtl_outdir)) {
+          dir.create(eqtl_outdir, recursive = TRUE)
+        }
+        # if the file doesn't exist already, write rows with headers from eQTL table to file when p-value is tied for minimum. else, append to file
+        if (!file.exists(glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"))) {
+          write.table(top_eqtl_table, glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+        } else {
+          write.table(top_eqtl_table, glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+        }    
+        
         # print the message below if debug_mode is TRUE
         if (debug_mode) {
           print("running coloc_to_gassocplot:")
         }
         
-        # API rejects requests if >500 rsids.
+        # API rejects requests if >500 rsids, so need to run plink locally
         if (length(out[[1]]$pos) >= 500) {
+          print("too many rsids, running plink locally")
           # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
           # choices for ancestry are AMR, AFR, EAS, EUR, SAS
           # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
           temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
         } else {
+          print("running coloc_to_gassocplot via API")
           # query the API if <500 rsids
           temp <- coloc_to_gassocplot(out)
         }
         # construct plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
         
-        base_dir <- glue("/projects/team1/plots/{as.integer(window_size)}")
+        base_dir <- glue("plots/{as.integer(window_size)}")
         # output path for saving figure
         outfile <- glue(base_dir, "/chr{chromosome}_gwas{sprintf('%03d', tophit)}_pos{pos_gwas}_H4_{H4}.png")
         # if it doesn't exist, create directory
@@ -403,20 +425,59 @@ server <- function(input, output) {
     #COLIN/KENJI CODE ABOVE
     
     
+    
+    
     list(src = outfile, alt = "this is alt text")
       
     
   })
   
-  #Create Download Handler to provide results
-  # output$downloadData <- downloadHandler(
-  #   filename = function() {
-  #     paste(input$dataset, ".csv", sep = "")
-  #   },
-  #   content = function(file) {
-  #     write.csv(datasetInput(), file, row.names = FALSE)
+  
+  #Attempt to show every image.
+  # df_img <- data.frame(id = c(1:5), img_path = c("h1000.png", "h2000.png", "h3000.png", "h4000.png", "h000.png"))
+  # n <- nrow(df_img)
+  # 
+  # observe({
+  #   for (i in 1:n)
+  #   {
+  #     print(i)
+  #     local({
+  #       my_i <- i
+  #       imagename = paste0("img", my_i)
+  #       print(imagename)
+  #       output[[imagename]] <-
+  #         renderImage({
+  #           list(src = file.path('www', df_img$img_path[my_i]), 
+  #                width = "100%", height = "55%",
+  #                alt = "Image failed to render")
+  #         }, deleteFile = FALSE)
+  #     })
   #   }
-  # )
+  # })
+  # 
+  # 
+  # output$peaks <- renderUI({
+  #   
+  #   image_output_list <- 
+  #     lapply(1:n,
+  #            function(i)
+  #            {
+  #              imagename = paste0("img", i)
+  #              imageOutput(imagename)
+  #            })
+  #   
+  #   do.call(tagList, image_output_list)
+  # })
+  
+  
+  
+  #Create Download Handler to provide results
+  output$downloadData <- downloadHandler(
+    filename = resultsFile.txt,
+    content = function(file) {
+      write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
+    }
+  )
   # 
   
 }
