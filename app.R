@@ -71,22 +71,27 @@ ui <- fluidPage(theme = shinytheme("superhero"),
                   tabPanel("Results", 
                            textOutput("resultHeader"),
                            imageOutput("peaks"),
-                           #box(uiOutput("peaks"))
+                           #uiOutput("peaks"),
                            
                            #Offer method to download a readout of the results.
                            # Button
-                           downloadButton("downloadData", "Download")
+                           downloadButton("downloadData", "Download Top eQTLs (once plots appear)")
                   ),
                       
-                  tabPanel("About", p("This app reads in "),
-                           p("The flow chart below describes the backend algorithm.")
-                           #INCLUDE FLOW CHART HERE
-                           #img(src = "")
-                  ),
-                  tabPanel("Datasets", p(align = "center", "The primary eQTL database is __, and that can be found along with more supplementary info on our Github page.")),
-                  tabPanel("Contact Us", p("This R Shiny Web App was developed by a team of Georgia Institute of Technology students: Andy Chea, Colin Naughton, Kenji Nishiura, and Jasmyn Pellebon. You can reach us at...")
+                  # tabPanel("About", p("This app reads in "),
+                  #          p("The flow chart below describes the backend algorithm.")
+                  #          #INCLUDE FLOW CHART HERE
+                  #          #img(src = "")
+                  # ),
+                  tabPanel("Datasets",
+                           p("The primary eQTL database is TIGAR's blood eQTL database, and that download can be found along with more supplementary info on our Github page."),
+                           p("GWAS IDs are queried from the OpenGWASProject servers, which is a curated set of data with similar organization and quality.")
+                           ),
+                  tabPanel("Contact Us", 
+                           p("This R Shiny Web App was developed by a team of Georgia Institute of Technology students: Andy Chea, Colin Naughton, Kenji Nishiura, and Jasmyn Pellebon. You can reach us at the project's Github page"),
+                           tags$a(href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score", "Project GitHub")
                            )
-      ),
+      )
       
       
       #Display plot of LD peaks in the results tab.
@@ -428,13 +433,22 @@ server <- function(input, output) {
     
     
     list(src = outfile, alt = "this is alt text")
+    
+    #Create Download Handler to provide results
+    output$downloadData <- downloadHandler(
+      filename = resultsFile.txt,
+      content = function(file) {
+        write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
+      }
+    )
       
     
   })
   
   
   #Attempt to show every image.
-  # df_img <- data.frame(id = c(1:5), img_path = c("h1000.png", "h2000.png", "h3000.png", "h4000.png", "h000.png"))
+  #Complicated regex pattern that also breaks R compilation: chr\d+_gwas\d+_pos\d+_H4_\d+\.?\d+\.png
+  # df_img <- data.frame(img_path = list.files(pattern = "chr.+png", full.names = TRUE))
   # n <- nrow(df_img)
   # 
   # observe({
@@ -447,8 +461,7 @@ server <- function(input, output) {
   #       print(imagename)
   #       output[[imagename]] <-
   #         renderImage({
-  #           list(src = file.path('www', df_img$img_path[my_i]), 
-  #                width = "100%", height = "55%",
+  #           list(src = file.path(df_img$img_path[my_i]),
   #                alt = "Image failed to render")
   #         }, deleteFile = FALSE)
   #     })
@@ -457,28 +470,21 @@ server <- function(input, output) {
   # 
   # 
   # output$peaks <- renderUI({
+  # 
+  #   #Might need to move algorithm code into this render funciton.
   #   
-  #   image_output_list <- 
+  #   
+  #   image_output_list <-
   #     lapply(1:n,
   #            function(i)
   #            {
   #              imagename = paste0("img", i)
   #              imageOutput(imagename)
   #            })
-  #   
+  # 
   #   do.call(tagList, image_output_list)
   # })
   
-  
-  
-  #Create Download Handler to provide results
-  output$downloadData <- downloadHandler(
-    filename = resultsFile.txt,
-    content = function(file) {
-      write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
-    }
-  )
-  # 
   
 }
   
