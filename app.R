@@ -431,19 +431,23 @@ server <- function(input, output) {
     
     
     
-    
     list(src = outfile, alt = "this is alt text")
+  
+
     
-    #Create Download Handler to provide results
-    output$downloadData <- downloadHandler(
-      filename = resultsFile.txt,
-      content = function(file) {
-        write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
-      }
-    )
+    
       
     
   })
+  
+  #Create Download Handler to provide results
+  output$downloadData <- downloadHandler(
+    filename = resultsFile.txt,
+    content = function(file) {
+      write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
+      #write.table(top_eqtl_table, file) #Might need to make this code more reactive later
+    }
+  )
   
   
   #Attempt to show every image.
@@ -471,7 +475,7 @@ server <- function(input, output) {
   # 
   # output$peaks <- renderUI({
   # 
-  #   #Might need to move algorithm code into this render funciton.
+  #   #Might need to move algorithm code into this render function.
   #   
   #   
   #   image_output_list <-
