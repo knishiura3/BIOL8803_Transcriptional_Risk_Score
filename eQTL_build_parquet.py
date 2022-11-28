@@ -13,13 +13,13 @@ subset_cols=[
         "AssessedAllele",
         "OtherAllele",
         "Zscore",
-        # "Gene",
-        # "GeneChr",
-        # "GenePos",
-        # "NrCohorts",
+        "Gene",
+        "GeneChr",
+        "GenePos",
+        "NrCohorts",
         "NrSamples",
-        # "FDR",
-        # "BonferroniP",
+        "FDR",
+        "BonferroniP",
     ]
 
 start_time = time.monotonic()
@@ -35,27 +35,23 @@ df = dd.read_csv(
         "AssessedAllele": "str",
         "OtherAllele": "str",
         "Zscore": "float64",
-        # "Gene": "str",
-        # "GeneChr": "str",
-        # "GenePos": "int64",
-        # "NrCohorts": "int64",
+        "Gene": "str",
+        "GeneChr": "str",
+        "GenePos": "int64",
+        "NrCohorts": "int64",
         "NrSamples": "int64",
-        # "FDR": "float64",
-        # "BonferroniP": "float64",
+        "FDR": "float64",
+        "BonferroniP": "float64",
     },
-    
-    blocksize="200MB",
 )
 
-
-
-df.to_parquet(
+df.repartition(partition_size="1024MB").to_parquet(
     out_dir,
     partition_on=["SNPChr"],
     engine="pyarrow",
     write_index=False,
     compression="snappy",
+    append=True
 )
-
 end_time = time.monotonic()
 print(f"Time taken: {timedelta(seconds=end_time - start_time)}")
