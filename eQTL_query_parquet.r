@@ -19,7 +19,7 @@ suppressPackageStartupMessages(suppressWarnings({
 
 # Reference LD Panels
 #   need to set this to wherever you want the LD panel stored
-dir_ld <- "/projects/team1/db/ld_reference"
+dir_ld <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/ld_reference"
 
 # Copied from the documentation at https://mrcieu.github.io/gwasglue/index.html
 #
@@ -42,9 +42,6 @@ dir_ld <- "/projects/team1/db/ld_reference"
 #   ├── SAS.bim
 #   └── SAS.fam
 
-# this was not used,
-#   1kg European reference panel for LD (legacy):
-#   http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz
 
 # study ID (needs to have value assigned by user)
 gwas_dataset <- "ieu-b-30"
@@ -52,8 +49,10 @@ dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
-dir_eqtl <- "/projects/team1/db/eqtls"
-dir_eqtlmaf <- "/projects/team1/db/eqtl_MAF"
+dir_eqtl <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtls"
+dir_eqtlmaf <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtl_MAF"
+
+eqtl_outdir <- "top_eqtls/"
 
 # open parquet files
 ds_eQTL <- arrow::open_dataset(dir_eqtl, partitioning = "SNPChr")
@@ -75,7 +74,7 @@ duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
 
 
 # define window size for coloc
-window_size <- as.integer(500000)
+window_size <- as.integer(100000)
 
 # write header line to output file
 # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
@@ -112,7 +111,7 @@ for (chromosome in 1:22) {
 
         print(top[tophit, ])
         # print the rsid field
-        print(top[tophit, "rsid"])
+        # print(top[tophit, "rsid"])
 
         pos_gwas <- top[tophit, ]$position
         lower <- pos_gwas - window_size
@@ -246,6 +245,7 @@ for (chromosome in 1:22) {
 
         PP_H4 <- res$summary[["PP.H4.abf"]]
 
+
         # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
         write(paste0(Sys.time(), "\t", chromosome, "\t", pos_gwas, "\t", length(out[[1]]$pos), "\t", PP_H4), file = glue("coloc_log_window_{window_size}.txt"), append = TRUE)
 
@@ -255,25 +255,46 @@ for (chromosome in 1:22) {
         }
         H4 <- round(as.numeric(PP_H4), digits = 2)
 
+        # get the minimum Pvalue from the eQTL table
+        min_pval <- min(result_eqtl$Pvalue)
+        # get the rsids for all the rows tied for the minimum Pvalue
+        top_eqtl_table <- result_eqtl %>%
+            dplyr::filter(Pvalue == min_pval) 
+        
+        str(top_eqtl_table)
+
+        # if it doesn't exist, create directory
+        if (!dir.exists(eqtl_outdir)) {
+            dir.create(eqtl_outdir, recursive = TRUE)
+        }
+        # if the file doesn't exist already, write rows with headers from eQTL table to file when p-value is tied for minimum. else, append to file
+        if (!file.exists(glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"))) {
+            write.table(top_eqtl_table, glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+        } else {
+            write.table(top_eqtl_table, glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS.txt"), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+        }    
+        
                 # print the message below if debug_mode is TRUE
         if (debug_mode) {
             print("running coloc_to_gassocplot:")
         }
 
-        # API rejects requests if >500 rsids.
+        # API rejects requests if >500 rsids, so need to run plink locally
         if (length(out[[1]]$pos) >= 500) {
+            print("too many rsids, running plink locally")
             # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
             # choices for ancestry are AMR, AFR, EAS, EUR, SAS
             # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
             temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
         } else {
+            print("running coloc_to_gassocplot via API")
             # query the API if <500 rsids
             temp <- coloc_to_gassocplot(out)
         }
         # construct plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
 
-        base_dir <- glue("/projects/team1/plots/{as.integer(window_size)}")
+        base_dir <- glue("plots/{as.integer(window_size)}")
         # output path for saving figure
         outfile <- glue(base_dir, "/chr{chromosome}_gwas{sprintf('%03d', tophit)}_pos{pos_gwas}_H4_{H4}.png")
         # if it doesn't exist, create directory
