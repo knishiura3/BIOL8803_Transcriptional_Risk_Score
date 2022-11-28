@@ -442,7 +442,7 @@ server <- function(input, output) {
   
   #Create Download Handler to provide results
   output$downloadData <- downloadHandler(
-    filename = resultsFile.txt,
+    filename = "resultsFile.txt",
     content = function(file) {
       write.table(read.table("top_eqtls/eQTLs_colocalized_w_GWAS.txt", header = TRUE, sep = "\t"), file) #Might need to make this code more reactive later to update with eQTL file as it changes.
       #write.table(top_eqtl_table, file) #Might need to make this code more reactive later
