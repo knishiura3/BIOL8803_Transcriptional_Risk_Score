@@ -19,7 +19,7 @@ suppressPackageStartupMessages(suppressWarnings({
 
 # Reference LD Panels
 #   need to set this to wherever you want the LD panel stored
-dir_ld <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/ld_reference"
+# dir_ld <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/ld_reference"
 
 # Copied from the documentation at https://mrcieu.github.io/gwasglue/index.html
 #
@@ -44,15 +44,15 @@ dir_ld <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/ld_re
 
 
 # study ID (needs to have value assigned by user)
-gwas_dataset <- "ieu-b-30"
-dummy_dataset <- "ieu-a-7"
+# gwas_dataset <- "ieu-b-30"
+# dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
-dir_eqtl <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/eqtls_merged"
-dir_eqtlmaf <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtl_MAF"
+# dir_eqtl <- "/home/kenji/BIOL8803/BIOL8803_Transcriptional_Risk_Score/eqtls_merged"
+# dir_eqtlmaf <- "/home/kenji/BIOL8803/BACKUP_BIOL8803_Transcriptional_Risk_Score/eqtl_MAF"
 
-eqtl_outdir <- "top_eqtls/"
+# eqtl_outdir <- "top_eqtls/"
 
 # open parquet files
 ds_eQTL <- arrow::open_dataset(dir_eqtl, partitioning = "SNPChr")
