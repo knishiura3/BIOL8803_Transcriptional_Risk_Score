@@ -45,7 +45,7 @@ suppressPackageStartupMessages(suppressWarnings({
 
 # study ID (needs to have value assigned by user)
 # gwas_dataset <- "ieu-b-30"
-# dummy_dataset <- "ieu-a-7"
+dummy_dataset <- "ieu-a-7"
 # query API with study ID
 gwasinfo(id = as.character(gwas_dataset))
 
@@ -83,12 +83,8 @@ write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window",
 debug_mode=FALSE
 
 # to keep memory usage in check, work on one chromosome at a time
-for (chromosome in 1:22) {
-    if (debug_mode) {
-        if (chromosome < 6) {
-            next
-        }
-    }
+# for (chromosome in 1:22) {
+for (chromosome in chromosomes) {
 
     # get the top GWAS hits for the current chromosome
     top <- ieugwasr::tophits("ieu-b-30") %>%
@@ -291,6 +287,26 @@ for (chromosome in 1:22) {
             # query the API if <500 rsids
             temp <- coloc_to_gassocplot(out)
         }
+        str(temp)
+        # print(temp$corr)
+        # save temp$corr to a csv
+        write.csv(temp$corr, glue(eqtl_outdir,"eQTLs_colocalized_w_GWAS_corr_{sprintf('%03d', tophit)}.csv"), row.names = TRUE)
+        # convert to data frame using attr as row and column names
+        # temp$corr <- as.data.frame(temp$corr)
+        # str(temp$corr)
+        # print 5 highest correlations for each GWAS locus in the dataframe temp$corr
+        # str(temp$corr)
+
+        # get the index of the elements of temp$corr that are highest
+
+        # get the index of temp$z which is the maximum absolute value
+        # max_z_gwas <- which.max(abs(temp$z$`ieu-b-30`))
+        # max_z_eqtl <- which.max(abs(temp$z$`eQTLGen_cis-eQTL`))
+        # use the indices to look up the rsids in temp$markers$marker
+        # max_z_gwas_rsid <- temp$markers$marker[max_z_gwas]
+        # max_z_eqtl_rsid <- temp$markers$marker[max_z_eqtl]
+        # print(glue("max z GWAS: {max_z_gwas_rsid} with z = {temp$z$`ieu-b-30`[max_z_gwas]}"))
+        # print(glue("max z eQTL: {max_z_eqtl_rsid} with z = {temp$z$`eQTLGen_cis-eQTL`[max_z_eqtl]}"))
         # construct plot
         theplot <- gassocplot::stack_assoc_plot(temp$markers, temp$z, temp$corr, traits = temp$traits)
 
@@ -311,10 +327,14 @@ for (chromosome in 1:22) {
 
         # stop timer
         # toc(log = TRUE)
+        
     } # close loop over each gwas top hit
+    print(glue("finished chr{chromosome}"))
 } # close loop over each chromosome
 
 # clean up
+print("cleaning up")
 duckdb_unregister(con, "eqtlTable")
 duckdb_unregister(con, "mafTable")
 dbDisconnect(con, shutdown = TRUE)
+print("done")
