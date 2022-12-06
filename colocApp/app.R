@@ -6,7 +6,7 @@ library(slickR)
 
 # in a sidebar, take in input from user: 
 # dropdown menu for eQTL database
-# text input for GWAS ID with actionbutton trigger
+# text input for GWAS ID with submit button
 
 ui <- fluidPage(
     # theme = shinytheme("superhero"),
@@ -23,7 +23,6 @@ ui <- fluidPage(
             width = NULL,
             size = NULL),
         textInput("gwas_input", "Enter a GWAS ID:", width = NULL, placeholder = "ex: ieu-b-30"),
-        # tags$a(href="https://gwas.mrcieu.ac.uk/datasets/?gwas_id__icontains=ukb-b&sort=-gwas_id&page=73", "Find a GWAS ID at this link!"),
         # dropdown of numeric integers between 1-22 for chromosomes
         selectInput("chr_input", "Pick a chromosome",
             c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22),
@@ -33,8 +32,6 @@ ui <- fluidPage(
             width = NULL,
             size = NULL),
         actionButton("submit", "Submit"),
-        # create actionbutton to refresh the image list
-        # actionButton("refresh", "Refresh")
         ),
         mainPanel(
             width=9,
@@ -43,18 +40,7 @@ ui <- fluidPage(
                 condition = "input.submit == 0",
                 withSpinner(DT::dataTableOutput("gwas_table"))
             ),
-            # tags$div(
-                slickROutput("slickr", width="500px"),
-                # style = "margin-left:auto;margin-right:auto;"
-                # ) 
-
-            # conditionalPanel(
-            #     condition = "input.submit == 1",
-            #     tags$div(
-            #     slickROutput("slickr", width="500px"),
-            #     style = "margin-left:100px;"
-            #     )   
-            # ),
+            slickROutput("slickr", width="500px"),
         )
     )
 )
@@ -77,16 +63,7 @@ server <- function(input, output, session) {
         # print(ancestry)
         updateTextInput(session, "gwas_input", value = gwas_dataset)
     })
-    # when the refresh button is clicked,
-    # list the images in the plots directory again and update the image list
-    # observeEvent(input$refresh, {
-    #     # list the images in the plots directory
-    #     imgs <- list.files("plots/100000", pattern=".png", full.names = TRUE)
-    #     str(imgs)
-    #     output[["slickr"]] <<- renderSlickR({
-    #     slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
-    #     })
-    # })
+    
     plot_dir = "plots"
     # print the working directory
     imgs <- list.files(plot_dir, pattern=".png", full.names = TRUE)
@@ -116,18 +93,16 @@ server <- function(input, output, session) {
             top <- top_all %>%
                 filter(chr == chromosome) %>%
                 arrange(p)
-                # wrap the loop execution in withProgress
-
+            # initialize progressbar for each chromosome separately
             withProgress(
                 message='Please wait',
                 detail=glue('Processing chr {chromosome}:'),
                 value=0, {
                 for (tophit_idx in seq_len(nrow(top))) {
+                    # calls customized ieugwasr_to_coloc function to take in eQTL data as direct input
                     out_PPH4_rawResult <- gather_and_format_gwas_eqtl_in_region(con, chromosome, top[tophit_idx,])
-                    # assign first element of list to out
+                    # unpack returned objects
                     out <- out_PPH4_rawResult[[1]]
-                    # str(out)
-                    # assign second element of list to PP_H4
                     PP_H4 <- out_PPH4_rawResult[[2]]
                     # continue to the next window if posterior probability of H4 is less than 0.5
                     if (PP_H4 < 0.50) {
@@ -135,12 +110,6 @@ server <- function(input, output, session) {
                         setProgress(tophit_idx / nrow(top), detail = glue('Processing chr {chromosome}: region {tophit_idx} out of {nrow(top)}'))
                         next
                     }
-
-                    # print the message below if debug_mode is TRUE
-                    if (debug_mode) {
-                        print("running coloc_to_gassocplot:")
-                    }
-                    
                     # API rejects requests if >500 rsids, so need to run plink locally
                     if (length(out[[2]]$pos) >= 500) {
                         print("too many rsids, running plink locally")
@@ -167,7 +136,7 @@ server <- function(input, output, session) {
                     } else {
                         write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
                     }    
-
+                    # call customized gassocplot function w/ -log(pval) ceiling removed
                     plot_associated_signals_and_save(tophit_idx, chromosome, PP_H4, temp, plot_dir)
 
                     
@@ -184,16 +153,9 @@ server <- function(input, output, session) {
                 })
             }) # close withProgress
         } # close loop over chromosomes
-        
+        # close the database connection
         clean_up(con)        
     })
 }
 
 shinyApp(ui, server)
-
-
-
-
-
-
-
