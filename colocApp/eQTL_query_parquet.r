@@ -5,7 +5,6 @@ library(fs)
 library(tidyverse)
 library(DBI)
 library(glue)
-library(tictoc)
 
 # packages for coloc
 suppressPackageStartupMessages(suppressWarnings({
