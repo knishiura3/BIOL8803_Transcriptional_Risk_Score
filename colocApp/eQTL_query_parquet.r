@@ -18,8 +18,6 @@ suppressPackageStartupMessages(suppressWarnings({
 
 }))
 
-source('ieugwasr_to_coloc_modified.r')
-source("gassocplot_modified.r")
 
 initialize_db <- function() {
     # open parquet files
@@ -42,7 +40,7 @@ initialize_db <- function() {
     return(con)
 }
 
-gather_and_format_gwas_eqtl_in_region <- function(gwas_hit) {
+gather_and_format_gwas_eqtl_in_region <- function(con, chromosome, gwas_hit) {
     # str(gwas_hit)
     # get the position of the current GWAS hit
     gwas_pos <- gwas_hit$position
@@ -163,11 +161,10 @@ get_top_marker_raw_data <- function(top_marker_gwas, top_marker_eqtl, result_raw
     return(top_table)
 }
 
-plot_associated_signals_and_save <- function(temp) {
+plot_associated_signals_and_save <- function(tophit_idx, chromosome, PP_H4, temp, plot_dir) {
     # construct plot
     theplot <- stack_assoc_plot_custom(temp$markers, temp$z, temp$corr, traits = temp$traits)
-    
-    plot_dir <- glue("plots/{as.integer(window_size)}")
+
     # output path for saving a figure for each colocalized pair of GWAS/eQTL 
     outfile <- glue(plot_dir, "/chr{chromosome}_gwastophit{sprintf('%03d', tophit_idx)}_H4_{PP_H4}.png")
     # if it doesn't exist, create directory
@@ -181,7 +178,7 @@ plot_associated_signals_and_save <- function(temp) {
 }
 
 # function to clean up
-clean_up <- function() {
+clean_up <- function(con) {
     # clean up
     print("cleaning up")
     duckdb_unregister(con, "eqtlTable")
@@ -255,10 +252,10 @@ if (debug_mode) {
 # # register the datasets as DuckDB table, and give it a name
 # duckdb::duckdb_register_arrow(con, "eqtlTable", ds_eQTL)
 # duckdb::duckdb_register_arrow(con, "mafTable", ds_eqtlMAF)
-con <- initialize_db()
+# con <- initialize_db()
 
-# define window size for coloc
-window_size <- as.integer(100000)
+# # define window size for coloc
+# window_size <- as.integer(100000)
 
 # write header line to output file
 # split chrpos on colon
@@ -266,131 +263,131 @@ window_size <- as.integer(100000)
 # write to a log file, timestamp, chr, gwas_pos, number of eQTLs in window, PP_H4
 # write(paste0("Time", "\t", "chr", "\t", "pos_gwas", "\t", "num_eqtls_in_window", "\t", "PP_H4"), file = glue("coloc_log_window_{window_size}.txt"), append = FALSE)
 
-top_all <- ieugwasr::tophits(gwas_dataset)
-# to keep memory usage in check, work on one chromosome at a time
-# for (chromosome in 1:22) {
-for (chromosome in chromosomes) {
+# top_all <- ieugwasr::tophits(gwas_dataset)
+# # to keep memory usage in check, work on one chromosome at a time
+# # for (chromosome in 1:22) {
+# for (chromosome in chromosomes) {
 
-    # get the top GWAS hits for the current chromosome
-    top <- top_all %>%
-        filter(chr == chromosome) %>%
-        arrange(p)
-    print(paste0(dim(top)[1], " GWAS top hits identified on chromosome ", chromosome))
+#     # get the top GWAS hits for the current chromosome
+#     top <- top_all %>%
+#         filter(chr == chromosome) %>%
+#         arrange(p)
+#     print(paste0(dim(top)[1], " GWAS top hits identified on chromosome ", chromosome))
 
-    # iterate over gwas top hits for current chromosome
-    for (tophit_idx in seq_len(nrow(top))) {
-        out_PPH4_rawResult <- gather_and_format_gwas_eqtl_in_region(top[tophit_idx,])
-        # assign first element of list to out
-        out <- out_PPH4_rawResult[[1]]
-        # str(out)
-        # assign second element of list to PP_H4
-        PP_H4 <- out_PPH4_rawResult[[2]]
-        # continue to the next window if posterior probability of H4 is less than 0.5
-        if (PP_H4 < 0.50) {
-            print(glue("PP_H4 < 0.50, skipping and continuing to next GWAS top hit"))
-            next
-        }
+#     # iterate over gwas top hits for current chromosome
+#     for (tophit_idx in seq_len(nrow(top))) {
+#         out_PPH4_rawResult <- gather_and_format_gwas_eqtl_in_region(top[tophit_idx,])
+#         # assign first element of list to out
+#         out <- out_PPH4_rawResult[[1]]
+#         # str(out)
+#         # assign second element of list to PP_H4
+#         PP_H4 <- out_PPH4_rawResult[[2]]
+#         # continue to the next window if posterior probability of H4 is less than 0.5
+#         if (PP_H4 < 0.50) {
+#             print(glue("PP_H4 < 0.50, skipping and continuing to next GWAS top hit"))
+#             next
+#         }
 
-        # print the message below if debug_mode is TRUE
-        if (debug_mode) {
-            print("running coloc_to_gassocplot:")
-        }
-        # API rejects requests if >500 rsids, so need to run plink locally
-        if (length(out[[2]]$pos) >= 500) {
-            print("too many rsids, running plink locally")
-            # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
-            # choices for ancestry are AMR, AFR, EAS, EUR, SAS
-            # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
-            temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
-        } else {
-            print("running coloc_to_gassocplot via API")
-            # query the API if <500 rsids
-            temp <- coloc_to_gassocplot(out)
-        }
-        # get the rsids matching the gassocplot plot labels
-        top_marker_gwas <- extract_top_markers_from_gassocplot_output(temp)[1]
-        top_marker_eqtl <- extract_top_markers_from_gassocplot_output(temp)[2]
-        # str(temp$z[[1]])
-        # str(temp$z[[2]])
-        # # code modified from gassocplot for identifying top markers
-        # # https://github.com/jrs95/gassocplot/blob/master/R/figures.R#L387-L390
-        # mlog10p_gwas <- -(log(2) + pnorm(-abs(temp$z[[1]]), log.p=TRUE))/log(10)
-        # mlog10p_eqtl <- -(log(2) + pnorm(-abs(temp$z[[2]]), log.p=TRUE))/log(10)
-        # # add as column of temp object because of shared indices
-        # temp$stats_gwas <- mlog10p_gwas
-        # temp$stats_eqtl <- mlog10p_eqtl
-        # # get the values and indices of the the maximum value of temp$stats (or elements of values/indices tied for max)
-        # max_pval_gwas <- max(temp$stats_gwas)
-        # max_pval_eqtl <- max(temp$stats_eqtl)
-        # # str(max_pval_eqtl)
-        # max_pval_indices_gwas <- which(temp$stats_gwas == max_pval_gwas)
-        # max_pval_indices_eqtl <- which(temp$stats_eqtl == max_pval_eqtl)
-        # # str(max_pval_indices_eqtl)
-        # # get the rsid (temp$markers$marker) at the index position of top marker
-        # top_marker_gwas <- temp$markers$marker[max_pval_indices_gwas]
-        # top_marker_eqtl <- temp$markers$marker[max_pval_indices_eqtl]
-        # str(top_marker_gwas)
-        # str(top_marker_eqtl)
+#         # print the message below if debug_mode is TRUE
+#         if (debug_mode) {
+#             print("running coloc_to_gassocplot:")
+#         }
+#         # API rejects requests if >500 rsids, so need to run plink locally
+#         if (length(out[[2]]$pos) >= 500) {
+#             print("too many rsids, running plink locally")
+#             # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
+#             # choices for ancestry are AMR, AFR, EAS, EUR, SAS
+#             # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
+#             temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+#         } else {
+#             print("running coloc_to_gassocplot via API")
+#             # query the API if <500 rsids
+#             temp <- coloc_to_gassocplot(out)
+#         }
+#         # get the rsids matching the gassocplot plot labels
+#         top_marker_gwas <- extract_top_markers_from_gassocplot_output(temp)[1]
+#         top_marker_eqtl <- extract_top_markers_from_gassocplot_output(temp)[2]
+#         # str(temp$z[[1]])
+#         # str(temp$z[[2]])
+#         # # code modified from gassocplot for identifying top markers
+#         # # https://github.com/jrs95/gassocplot/blob/master/R/figures.R#L387-L390
+#         # mlog10p_gwas <- -(log(2) + pnorm(-abs(temp$z[[1]]), log.p=TRUE))/log(10)
+#         # mlog10p_eqtl <- -(log(2) + pnorm(-abs(temp$z[[2]]), log.p=TRUE))/log(10)
+#         # # add as column of temp object because of shared indices
+#         # temp$stats_gwas <- mlog10p_gwas
+#         # temp$stats_eqtl <- mlog10p_eqtl
+#         # # get the values and indices of the the maximum value of temp$stats (or elements of values/indices tied for max)
+#         # max_pval_gwas <- max(temp$stats_gwas)
+#         # max_pval_eqtl <- max(temp$stats_eqtl)
+#         # # str(max_pval_eqtl)
+#         # max_pval_indices_gwas <- which(temp$stats_gwas == max_pval_gwas)
+#         # max_pval_indices_eqtl <- which(temp$stats_eqtl == max_pval_eqtl)
+#         # # str(max_pval_indices_eqtl)
+#         # # get the rsid (temp$markers$marker) at the index position of top marker
+#         # top_marker_gwas <- temp$markers$marker[max_pval_indices_gwas]
+#         # top_marker_eqtl <- temp$markers$marker[max_pval_indices_eqtl]
+#         # str(top_marker_gwas)
+#         # str(top_marker_eqtl)
 
-        result_raw <- out_PPH4_rawResult[[3]]
-        # # create a table of the row in result_raw that corresponds to the top marker and append H4 as a column
-        # # and only keep desired columns
-        # top_eqtl_table <- result_raw[result_raw$SNP.eqtl %in% top_marker_eqtl, c("GeneChr","Pvalue", "SNP.eqtl", "SNPPos", "AssessedAllele", "OtherAllele", "Zscore", "Gene", "GenePos", "NrCohorts", "NrSamples", "FDR", "BonferroniP", "AlleleA", "AlleleB", "allA_total", "allAB_total", "allB_total", "AlleleB_all")]
-        # # rename GeneChr to Chr
-        # colnames(top_eqtl_table)[colnames(top_eqtl_table) == "GeneChr"] <- "Chr"
-        # # loop over and add .eqtl suffix to columns Pvalue, SNPPos, AssessedAllele, OtherAllele, Zscore, AlleleA, AlleleB, allA_total, allAB_total, allB_total, AlleleB_all
-        # for (i in 1:ncol(top_eqtl_table)) {
-        #     # skip column name that already has .eqtl suffix or if Chr
-        #     if (grepl(".eqtl", colnames(top_eqtl_table)[i]) | colnames(top_eqtl_table)[i] == "Chr") {
-        #         next
-        #     }
-        #     colnames(top_eqtl_table)[i] <- paste0(colnames(top_eqtl_table)[i], ".eqtl")
-        # }
+#         result_raw <- out_PPH4_rawResult[[3]]
+#         # # create a table of the row in result_raw that corresponds to the top marker and append H4 as a column
+#         # # and only keep desired columns
+#         # top_eqtl_table <- result_raw[result_raw$SNP.eqtl %in% top_marker_eqtl, c("GeneChr","Pvalue", "SNP.eqtl", "SNPPos", "AssessedAllele", "OtherAllele", "Zscore", "Gene", "GenePos", "NrCohorts", "NrSamples", "FDR", "BonferroniP", "AlleleA", "AlleleB", "allA_total", "allAB_total", "allB_total", "AlleleB_all")]
+#         # # rename GeneChr to Chr
+#         # colnames(top_eqtl_table)[colnames(top_eqtl_table) == "GeneChr"] <- "Chr"
+#         # # loop over and add .eqtl suffix to columns Pvalue, SNPPos, AssessedAllele, OtherAllele, Zscore, AlleleA, AlleleB, allA_total, allAB_total, allB_total, AlleleB_all
+#         # for (i in 1:ncol(top_eqtl_table)) {
+#         #     # skip column name that already has .eqtl suffix or if Chr
+#         #     if (grepl(".eqtl", colnames(top_eqtl_table)[i]) | colnames(top_eqtl_table)[i] == "Chr") {
+#         #         next
+#         #     }
+#         #     colnames(top_eqtl_table)[i] <- paste0(colnames(top_eqtl_table)[i], ".eqtl")
+#         # }
 
-        # # queries GWAS table w/ rsid for top marker
-        # top_gwas <- ieugwasr::associations(top_marker_gwas,gwas_dataset)
-        # # only keep columns position, beta, se, p, n, id, rsid, ea, nea, eaf, trait
-        # top_gwas <- top_gwas[, c("position", "beta", "se", "p", "n", "id", "rsid", "ea", "nea", "eaf", "trait")]
-        # colnames(top_gwas) <- paste0(colnames(top_gwas), ".gwas")
-        # # combine top_gwas and top_eqtl_table side-by-side in new table
-        # top_table <- cbind(top_gwas, top_eqtl_table)
-        # # move Chr column to first position
-        # top_table <- top_table[, c("Chr", colnames(top_table)[!colnames(top_table) %in% "Chr"])]
-        # top_table$H4 <- PP_H4
-        top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
-        top_table_filename <- "eQTLs_colocalized_w_GWAS.txt"
-        # write the header only once
-        if (!file.exists(glue(eqtl_outdir, top_table_filename))) {
-            write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
-        } else {
-            write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
-        }    
+#         # # queries GWAS table w/ rsid for top marker
+#         # top_gwas <- ieugwasr::associations(top_marker_gwas,gwas_dataset)
+#         # # only keep columns position, beta, se, p, n, id, rsid, ea, nea, eaf, trait
+#         # top_gwas <- top_gwas[, c("position", "beta", "se", "p", "n", "id", "rsid", "ea", "nea", "eaf", "trait")]
+#         # colnames(top_gwas) <- paste0(colnames(top_gwas), ".gwas")
+#         # # combine top_gwas and top_eqtl_table side-by-side in new table
+#         # top_table <- cbind(top_gwas, top_eqtl_table)
+#         # # move Chr column to first position
+#         # top_table <- top_table[, c("Chr", colnames(top_table)[!colnames(top_table) %in% "Chr"])]
+#         # top_table$H4 <- PP_H4
+#         top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
+#         top_table_filename <- "eQTLs_colocalized_w_GWAS.txt"
+#         # write the header only once
+#         if (!file.exists(glue(eqtl_outdir, top_table_filename))) {
+#             write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+#         } else {
+#             write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+#         }    
 
-        plot_associated_signals_and_save(temp)
-        # # construct plot
-        # theplot <- stack_assoc_plot_custom(temp$markers, temp$z, temp$corr, traits = temp$traits)
+#         plot_associated_signals_and_save(temp)
+#         # # construct plot
+#         # theplot <- stack_assoc_plot_custom(temp$markers, temp$z, temp$corr, traits = temp$traits)
         
-        # plot_dir <- glue("plots/{as.integer(window_size)}")
-        # # output path for saving a figure for each colocalized pair of GWAS/eQTL 
-        # outfile <- glue(plot_dir, "/chr{chromosome}_gwastophit{sprintf('%03d', tophit_idx)}_H4_{PP_H4}.png")
-        # # if it doesn't exist, create directory
-        # if (!dir.exists(plot_dir)) {
-        #     dir.create(plot_dir, recursive = TRUE)
-        # }
-        # # save plot w/ base R functions
-        # png(filename = outfile)
-        # plot(theplot)
-        # dev.off()
+#         # plot_dir <- glue("plots/{as.integer(window_size)}")
+#         # # output path for saving a figure for each colocalized pair of GWAS/eQTL 
+#         # outfile <- glue(plot_dir, "/chr{chromosome}_gwastophit{sprintf('%03d', tophit_idx)}_H4_{PP_H4}.png")
+#         # # if it doesn't exist, create directory
+#         # if (!dir.exists(plot_dir)) {
+#         #     dir.create(plot_dir, recursive = TRUE)
+#         # }
+#         # # save plot w/ base R functions
+#         # png(filename = outfile)
+#         # plot(theplot)
+#         # dev.off()
 
-        # refresh the slick image viewer after each plot is generated
-        # imgs <<- list.files(plot_dir, pattern=".png", full.names = TRUE)
-        # str(imgs)
-        # output[["slickr"]] <<- renderSlickR({
-        # slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
-        # })
+#         # refresh the slick image viewer after each plot is generated
+#         # imgs <<- list.files(plot_dir, pattern=".png", full.names = TRUE)
+#         # str(imgs)
+#         # output[["slickr"]] <<- renderSlickR({
+#         # slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
+#         # })
         
-    } # close loop over each gwas top hit
-    # print(glue("finished chr{chromosome}"))
-} # close loop over each chromosome
+#     } # close loop over each gwas top hit
+#     # print(glue("finished chr{chromosome}"))
+# } # close loop over each chromosome
 
-clean_up()
+# clean_up()
