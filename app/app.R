@@ -40,7 +40,7 @@ ui <- fluidPage(
                 condition = "input.submit == 0",
                 withSpinner(DT::dataTableOutput("gwas_table"))
             ),
-            slickROutput("slickr", width="500px"),
+            withSpinner(slickROutput("slickr", width="500px")),
         )
     )
 )

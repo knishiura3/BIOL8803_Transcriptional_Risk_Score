@@ -161,11 +161,12 @@ get_top_marker_raw_data <- function(top_marker_gwas, top_marker_eqtl, result_raw
 }
 
 plot_associated_signals_and_save <- function(tophit_idx, chromosome, PP_H4, temp, plot_dir) {
-    # construct plot
+    # this is needed to suppress automatic pdf output from gassocplot
     pdf(NULL)
+    # construct plot
     theplot <- stack_assoc_plot_custom(temp$markers, temp$z, temp$corr, traits = temp$traits)
     # output path for saving a figure for each colocalized pair of GWAS/eQTL 
-    outfile <- glue(plot_dir, "/chr{chromosome}_gwastophit{sprintf('%03d', tophit_idx)}_H4_{PP_H4}.png")
+    outfile <- glue::glue(plot_dir, "/chr{chromosome}_gwastophit{sprintf('%03d', tophit_idx)}_H4_{PP_H4}.png")
     # if it doesn't exist, create directory
     if (!dir.exists(plot_dir)) {
         dir.create(plot_dir, recursive = TRUE)
