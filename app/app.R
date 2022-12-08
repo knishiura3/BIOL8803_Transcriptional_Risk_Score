@@ -131,10 +131,10 @@ server <- function(input, output, session) {
                     top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
                     top_table_filename <- "eQTLs_colocalized_w_GWAS.txt"
                     # write the header only once
-                    if (!file.exists(glue(eqtl_outdir, top_table_filename))) {
-                        write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+                    if (!file.exists(glue(eqtl_outdir, '/', top_table_filename))) {
+                        write.table(top_table, glue(eqtl_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
                     } else {
-                        write.table(top_table, glue(eqtl_outdir,top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+                        write.table(top_table, glue(eqtl_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
                     }    
                     # call customized gassocplot function w/ -log(pval) ceiling removed
                     plot_associated_signals_and_save(tophit_idx, chromosome, PP_H4, temp, plot_dir)
