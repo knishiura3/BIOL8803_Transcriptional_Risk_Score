@@ -63,14 +63,13 @@ server <- function(input, output, session) {
         # print(ancestry)
         updateTextInput(session, "gwas_input", value = gwas_dataset)
     })
-    
-    plot_dir = "plots"
-    # print the working directory
-    imgs <- list.files(plot_dir, pattern=".png", full.names = TRUE)
-    str(imgs)
-    output[["slickr"]] <- renderSlickR({
-        slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
-    })
+
+    # # print the working directory
+    # imgs <- list.files(glue::glue(plot_dir,'/',user_outdir), pattern=".png", full.names = TRUE)
+    # # str(imgs)
+    # output[["slickr"]] <- renderSlickR({
+    #     slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
+    # })
     
     # when the submit button is clicked, execute pipeline and refresh the image viewer between each generated plot
     observeEvent(input$submit, {
@@ -80,6 +79,21 @@ server <- function(input, output, session) {
         dir_eqtl <<- "data/eqtls"
         dir_eqtlmaf <<- "data/eqtl_MAF"
         eqtl_outdir <<- "top_eqtls"
+        # generate unique id using timestamp
+        user_outdir <- as.character(Sys.time())
+        user_outdir <- gsub(" ", "_", user_outdir)
+        user_outdir <- gsub(":", "_", user_outdir)
+        user_outdir <- gsub("-", "_", user_outdir)
+        
+        plot_dir <<- "plots"
+        # if it doesn't exist, create a directory named user_outdir in plots and top_eqtls
+        if (!dir.exists(glue::glue(plot_dir,'/', user_outdir))) {
+            dir.create(glue::glue(plot_dir,'/', user_outdir))
+        }
+        if (!dir.exists(glue::glue(eqtl_outdir,'/', user_outdir))) {
+            dir.create(glue::glue(eqtl_outdir,'/', user_outdir))
+        }
+
         
         window_size <<- as.integer(100000)
         source('ieugwasr_to_coloc_modified.r')
@@ -96,7 +110,7 @@ server <- function(input, output, session) {
             # initialize progressbar for each chromosome separately
             withProgress(
                 message='Please wait',
-                detail=glue('Processing chr {chromosome}:'),
+                detail=glue::glue('Processing chr {chromosome}:'),
                 value=0, {
                 for (tophit_idx in seq_len(nrow(top))) {
                     # calls customized ieugwasr_to_coloc function to take in eQTL data as direct input
@@ -106,8 +120,8 @@ server <- function(input, output, session) {
                     PP_H4 <- out_PPH4_rawResult[[2]]
                     # continue to the next window if posterior probability of H4 is less than 0.5
                     if (PP_H4 < 0.50) {
-                        print(glue("PP_H4 < 0.50, skipping and continuing to next GWAS top hit"))
-                        setProgress(tophit_idx / nrow(top), detail = glue('Processing chr {chromosome}: region {tophit_idx} out of {nrow(top)}'))
+                        print(glue::glue("PP_H4 < 0.50, skipping and continuing to next GWAS top hit"))
+                        setProgress(tophit_idx / nrow(top), detail = glue::glue('Processing chr {chromosome}: region {tophit_idx} out of {nrow(top)}'))
                         next
                     }
                     # API rejects requests if >500 rsids, so need to run plink locally
@@ -131,22 +145,22 @@ server <- function(input, output, session) {
                     top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
                     top_table_filename <- "eQTLs_colocalized_w_GWAS.txt"
                     # write the header only once
-                    if (!file.exists(glue(eqtl_outdir, '/', top_table_filename))) {
-                        write.table(top_table, glue(eqtl_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+                    if (!file.exists(glue::glue(eqtl_outdir,'/', user_outdir, '/', top_table_filename))) {
+                        write.table(top_table, glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
                     } else {
-                        write.table(top_table, glue(eqtl_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+                        write.table(top_table, glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
                     }    
                     # call customized gassocplot function w/ -log(pval) ceiling removed
-                    plot_associated_signals_and_save(tophit_idx, chromosome, PP_H4, temp, plot_dir)
+                    plot_associated_signals_and_save(tophit_idx, chromosome, PP_H4, temp, glue::glue(plot_dir,'/', user_outdir))
 
                     
                     # increment progress bar
-                    print(glue('working on tophit_idx {tophit_idx} out of {nrow(top)}'))
-                    setProgress(tophit_idx / nrow(top), detail = glue('Processing chr {chromosome}: region {tophit_idx} out of {nrow(top)}'))
+                    print(glue::glue('working on tophit_idx {tophit_idx} out of {nrow(top)}'))
+                    setProgress(tophit_idx / nrow(top), detail = glue::glue('Processing chr {chromosome}: region {tophit_idx} out of {nrow(top)}'))
                     
                     } # close loop over each gwas top hit
                 # redraw the main panel explicitly
-                imgs <<- list.files(plot_dir, pattern=".png", full.names = TRUE)
+                imgs <<- list.files(glue::glue(plot_dir,'/', user_outdir), pattern=".png", full.names = TRUE)
                 str(imgs)
                 output[["slickr"]] <<- renderSlickR({
                     slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
