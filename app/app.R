@@ -41,6 +41,13 @@ ui <- fluidPage(
                 withSpinner(DT::dataTableOutput("gwas_table"))
             ),
             slickROutput("slickr", width="500px"),
+            # create a download button for the plots and top_eqtls in user_output
+            conditionalPanel(
+                condition = "input.submit == 1",
+                # download buttons for plot and top eqtls
+                downloadButton("dl_plots", "Download Plots"),
+                downloadButton("dl_eqtls", "Download Top eQTLs")
+                )
         )
     )
 )
@@ -71,6 +78,7 @@ server <- function(input, output, session) {
     #     slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
     # })
     
+
     # when the submit button is clicked, execute pipeline and refresh the image viewer between each generated plot
     observeEvent(input$submit, {
         gwas_dataset <<- input$gwas_input
@@ -80,10 +88,10 @@ server <- function(input, output, session) {
         dir_eqtlmaf <<- "data/eqtl_MAF"
         eqtl_outdir <<- "top_eqtls"
         # generate unique id using timestamp
-        user_outdir <- as.character(Sys.time())
-        user_outdir <- gsub(" ", "_", user_outdir)
-        user_outdir <- gsub(":", "_", user_outdir)
-        user_outdir <- gsub("-", "_", user_outdir)
+        user_outdir <<- as.character(Sys.time())
+        user_outdir <<- gsub(" ", "_", user_outdir)
+        user_outdir <<- gsub(":", "_", user_outdir)
+        user_outdir <<- gsub("-", "_", user_outdir)
         
         plot_dir <<- "plots"
         # if it doesn't exist, create a directory named user_outdir in plots and top_eqtls
@@ -143,12 +151,13 @@ server <- function(input, output, session) {
                     result_raw <- out_PPH4_rawResult[[3]]
 
                     top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
-                    top_table_filename <- "eQTLs_colocalized_w_GWAS.txt"
+                    top_table_filename <<- "eQTLs_colocalized_w_GWAS.txt"
+                    top_table_path <<- glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename)
                     # write the header only once
-                    if (!file.exists(glue::glue(eqtl_outdir,'/', user_outdir, '/', top_table_filename))) {
-                        write.table(top_table, glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
+                    if (!file.exists(top_table_path)) {
+                        write.table(top_table, top_table_path, sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
                     } else {
-                        write.table(top_table, glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename), sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
+                        write.table(top_table, top_table_path, sep = "\t", row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE)
                     }    
                     # call customized gassocplot function w/ -log(pval) ceiling removed
                     plot_associated_signals_and_save(tophit_idx, chromosome, PP_H4, temp, glue::glue(plot_dir,'/', user_outdir))
@@ -169,7 +178,17 @@ server <- function(input, output, session) {
         } # close loop over chromosomes
         # close the database connection
         clean_up(con)        
+    }) # close submit button trigger
+    # when dl_eqtls is clicked, send existing file at path top_table_path to user
+    output$dl_eqtls <- downloadHandler(
+        filename = function(){
+            paste("eqtls","txt",sep=".")
+        },
+        content = function(con){
+            file.copy(top_table_path, con)
     })
+
+
 }
 
 shinyApp(ui, server)
