@@ -46,7 +46,7 @@ ui <- fluidPage(
                 condition = "input.submit == 1",
                 # download buttons for plot and top eqtls
                 downloadButton("dl_plots", "Download Plots"),
-                downloadButton("dl_eqtls", "Download Top eQTLs")
+                downloadButton("dl_colocalized", "Download Colocalized GWAS/eQTLs")
                 )
         )
     )
@@ -153,6 +153,7 @@ server <- function(input, output, session) {
                     top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
                     top_table_filename <<- "eQTLs_colocalized_w_GWAS.txt"
                     top_table_path <<- glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename)
+                    print(top_table_path)
                     # write the header only once
                     if (!file.exists(top_table_path)) {
                         write.table(top_table, top_table_path, sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
@@ -170,7 +171,7 @@ server <- function(input, output, session) {
                     } # close loop over each gwas top hit
                 # redraw the main panel explicitly
                 imgs <<- list.files(glue::glue(plot_dir,'/', user_outdir), pattern=".png", full.names = TRUE)
-                str(imgs)
+                # str(imgs)
                 output[["slickr"]] <<- renderSlickR({
                     slickR(imgs) + settings(slidesToShow = 1, slidesToScroll = 1, lazyLoad = 'anticipated', dots = TRUE, arrows = TRUE, infinite = FALSE)
                 })
@@ -178,14 +179,28 @@ server <- function(input, output, session) {
         } # close loop over chromosomes
         # close the database connection
         clean_up(con)        
+        
+        # get basenames of the paths in imgs
+        plot_names <- basename(imgs)
+        # zip plots and store in user directory
+        zip::zip(zipfile = 'plots.zip', files = plot_names, root = glue::glue(plot_dir,'/', user_outdir), recurse = FALSE)
+        zip_path <<- glue::glue(plot_dir,'/', user_outdir, '/plots.zip')
+        
     }) # close submit button trigger
-    # when dl_eqtls is clicked, send existing file at path top_table_path to user
-    output$dl_eqtls <- downloadHandler(
+    # when dl_colocalized or dl_plots is clicked, send existing file to user
+    output$dl_colocalized <- downloadHandler(
         filename = function(){
-            paste("eqtls","txt",sep=".")
+            paste("colocalized","txt",sep=".")
         },
         content = function(con){
             file.copy(top_table_path, con)
+    })
+    output$dl_plots <- downloadHandler(
+        filename = function(){
+            paste("plots","zip",sep=".")
+        },
+        content = function(con){
+            file.copy(zip_path, con)
     })
 
 
