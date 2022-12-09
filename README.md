@@ -134,17 +134,8 @@ To get a local copy up and running follow these simple example steps. -->
                  "duckdb", "fs", "tidyverse", "DBI", "glue", "dplyr", "coloc", "ggplot2", "httpgd"))
   devtools::install_github("jrs95/gassocplot")
   devtools::install_github("mrcieu/gwasglue")
-  
-  install.packages(c("devtools",
-    "languageserver",
-    "BiocManager",
-    "tidyverse",
-    "tictoc",
-    "httpgd"), dependencies = TRUE)
-  BiocManager::install(version = "3.14") 
-  devtools::install_github("IRkernel/IRkernel", dependencies = TRUE)
+  devtools::install_github("IRkernel/IRkernel")
   IRkernel::installspec()
-
   ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
