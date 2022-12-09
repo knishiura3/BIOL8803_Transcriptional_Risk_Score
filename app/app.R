@@ -43,6 +43,10 @@ ui <- fluidPage(
             slickROutput("slickr", width="500px"),
             # add vertical whitespace
             tags$br(),
+            tags$br(),
+            tags$br(),
+            tags$br(),
+            tags$br(),
             # create a download button for the plots and top_eqtls in user_output
             conditionalPanel(
                 condition = "input.submit == 1",
