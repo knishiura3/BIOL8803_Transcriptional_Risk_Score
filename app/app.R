@@ -145,6 +145,8 @@ server <- function(input, output, session) {
                         # choices for ancestry are AMR, AFR, EAS, EUR, SAS
                         # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
                         temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
+                        # local debugging 
+                        # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
                     } else {
                         print("running coloc_to_gassocplot via API")
                         # query the API if <500 rsids
