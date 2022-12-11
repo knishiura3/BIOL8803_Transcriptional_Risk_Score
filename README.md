@@ -140,11 +140,25 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-1) Build the parquet from eQTLGen Summary statistics.
-2) Query the parquet using the desired GWAS ID from openGWAS.
+1) Download the ld reference
+```
+wget http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz -P ld; tar -zxvf ld/* -C ld/; rm ld/*tgz
+NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
+```
+2) Download the MAF
+```
+wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt.gz -P db/eqtl_MAF; gunzip db/eqtl_MAF/*
+Rscript MAF_build_parquet.R
+NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
+```
+1) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics and MAF.
+```
+python3 eQTL_build_parquet.py <Path to eQTL summary statistics txt file>
+```
+2) Query the parquet using the desired GWAS ID from <a href="https://www.opengwas.org/">openGWAS</a>.
 Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for example usage
 
-A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/
+A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/.
 
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
 
