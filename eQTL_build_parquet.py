@@ -3,7 +3,7 @@ import time
 from datetime import timedelta
 import sys
 
-out_dir = "eqtls"
+out_dir = "db/eqtls"
 
 
 subset_cols=[
