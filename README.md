@@ -36,9 +36,8 @@
 <h3 align="center">GWAS & eQTL Colocalization</h3>
 
   <p align="center">
-    project_description
+    Colocalize eQTL and GWAS hits from any study in openGWAS.
     <br />
-    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">View Demo</a>
@@ -69,7 +68,6 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -80,8 +78,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
-
+This project allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://www.opengwas.org/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a>. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
 
 <!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `knishiura3`, `BIOL8803_Transcriptional_Risk_Score`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
 
