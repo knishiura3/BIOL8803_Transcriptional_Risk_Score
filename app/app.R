@@ -47,9 +47,17 @@ ui <- fluidPage(
             tags$br(),
             tags$br(),
             tags$br(),
+            # placeholder for error text when 0 colocalized eqtls are found
+            textOutput(outputId = "error"),
+            # format error text
+            tags$head(tags$style("#error{color: red;
+                                font-size: 20px;
+                                font-style: italic;}"
+                )
+            ),
             # create a download button for the plots and top_eqtls in user_output
             conditionalPanel(
-                condition = "input.submit == 1",
+                condition = "input.submit >= 1",
                 # download buttons for plot and top eqtls
                 downloadButton("dl_plots", "Download Plots"),
                 downloadButton("dl_colocalized", "Download Colocalized GWAS/eQTLs")
@@ -87,6 +95,8 @@ server <- function(input, output, session) {
 
     # when the submit button is clicked, execute pipeline and refresh the image viewer between each generated plot
     observeEvent(input$submit, {
+        # clear error message 
+        output$error <- renderText({""})
         gwas_dataset <<- input$gwas_input
         chromosomes <<- input$chr_input
         dir_ld <<- "ld"
@@ -145,7 +155,7 @@ server <- function(input, output, session) {
                         # choices for ancestry are AMR, AFR, EAS, EUR, SAS
                         # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
                         temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
-                        # local debugging 
+                        # local debugging (comment out line above, uncomment line below)
                         # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
                     } else {
                         print("running coloc_to_gassocplot via API")
@@ -158,7 +168,7 @@ server <- function(input, output, session) {
                     
                     result_raw <- out_PPH4_rawResult[[3]]
 
-                    top_table <- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
+                    top_table <<- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
                     top_table_filename <<- "eQTLs_colocalized_w_GWAS.txt"
                     top_table_path <<- glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename)
                     print(top_table_path)
@@ -187,7 +197,17 @@ server <- function(input, output, session) {
         } # close loop over chromosomes
         # close the database connection
         clean_up(con)        
-        
+        # print the dimensions of top_table
+        # if top_table is not defined, print message
+        if (!exists("top_table")) {
+            print("top_table not defined")
+            # set error text when 0 colocalized eqtls are found
+            output$error <- renderText({
+                "No colocalized eQTLs found. Try again with different chromosomes or GWAS datasets."
+            })
+        } else {
+            print(dim(top_table))
+        }
         # get basenames of the paths in imgs
         plot_names <- basename(imgs)
         # zip plots and store in user directory
