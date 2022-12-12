@@ -103,14 +103,22 @@ server <- function(input, output, session) {
         dir_eqtl <<- "data/eqtls"
         dir_eqtlmaf <<- "data/eqtl_MAF"
         eqtl_outdir <<- "top_eqtls"
+        plot_dir <<- "plots"
+        # if it doesn't exist, create a directory named user_outdir in plots and top_eqtls
+        # if it exists already, delete files from previous run
+        # if user_outdir is defined and the plot_dir/user_outdir exists, delete the files in that directory
+        if (exists("user_outdir") && dir.exists(glue::glue(plot_dir,'/', user_outdir))) {
+            unlink(glue::glue(plot_dir,'/', user_outdir, '/*'))
+            unlink(glue::glue(eqtl_outdir,'/', user_outdir, '/*'))
+        }
+
         # generate unique id using timestamp
         user_outdir <<- as.character(Sys.time())
         user_outdir <<- gsub(" ", "_", user_outdir)
         user_outdir <<- gsub(":", "_", user_outdir)
         user_outdir <<- gsub("-", "_", user_outdir)
-        
-        plot_dir <<- "plots"
-        # if it doesn't exist, create a directory named user_outdir in plots and top_eqtls
+
+        # if user subdirectories don't exist yet, create them
         if (!dir.exists(glue::glue(plot_dir,'/', user_outdir))) {
             dir.create(glue::glue(plot_dir,'/', user_outdir))
         }
