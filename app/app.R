@@ -126,7 +126,11 @@ server <- function(input, output, session) {
         con <- initialize_db()
         # query API for top GWAS hits for all chromosomes
         top_all <- ieugwasr::tophits(gwas_dataset)
-        for (chromosome in chromosomes) {
+
+        # initialize counter at 0 each time submit button is pressed
+        colocalized_counter <- 0
+
+        for (chromosome in chromosomes) {    
             # filter the top GWAS hits for the current chromosome
             top <- top_all %>%
                 filter(chr == chromosome) %>%
@@ -154,13 +158,17 @@ server <- function(input, output, session) {
                         # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
                         # choices for ancestry are AMR, AFR, EAS, EUR, SAS
                         # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
-                        temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
+                        # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
                         # local debugging (comment out line above, uncomment line below)
-                        # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+                        temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+                        # increment counter for number of colocalized eQTLs
+                        colocalized_counter <- colocalized_counter + 1
                     } else {
                         print("running coloc_to_gassocplot via API")
                         # query the API if <500 rsids
                         temp <- coloc_to_gassocplot(out)
+                        # increment counter for number of colocalized eQTLs
+                        colocalized_counter <- colocalized_counter + 1
                     }
                     # get the rsids matching the gassocplot plot labels
                     top_marker_gwas <- extract_top_markers_from_gassocplot_output(temp)[1]
@@ -171,7 +179,7 @@ server <- function(input, output, session) {
                     top_table <<- get_top_marker_raw_data(top_marker_gwas, top_marker_eqtl, result_raw, PP_H4)
                     top_table_filename <<- "eQTLs_colocalized_w_GWAS.txt"
                     top_table_path <<- glue::glue(eqtl_outdir, '/', user_outdir, '/', top_table_filename)
-                    print(top_table_path)
+                    # print(top_table_path)
                     # write the header only once
                     if (!file.exists(top_table_path)) {
                         write.table(top_table, top_table_path, sep = "\t", row.names = FALSE, quote = FALSE,col.names = TRUE, append = FALSE)
@@ -197,17 +205,29 @@ server <- function(input, output, session) {
         } # close loop over chromosomes
         # close the database connection
         clean_up(con)        
-        # print the dimensions of top_table
-        # if top_table is not defined, print message
-        if (!exists("top_table")) {
-            print("top_table not defined")
+        # if colocalized_counter is 0, print message
+        if (colocalized_counter == 0) {
+            print("No colocalized eQTLs found. Try again with different chromosomes or GWAS datasets.")
             # set error text when 0 colocalized eqtls are found
             output$error <- renderText({
                 "No colocalized eQTLs found. Try again with different chromosomes or GWAS datasets."
             })
         } else {
-            print(dim(top_table))
+            print(glue::glue("Number of colocalized eQTLs: {colocalized_counter}"))
         }
+        # if top_table is not defined, print message
+        # if (!exists("top_table")) {
+        #     print("top_table not defined")
+        #     # set error text when 0 colocalized eqtls are found
+        #     output$error <- renderText({
+        #         "No colocalized eQTLs found. Try again with different chromosomes or GWAS datasets."
+        #     })
+        # } else {
+        #     # print number of observations in top_table
+        #     print(top_table.nrow)
+        #     # str(top_table)
+        #     # print(dim(top_table))
+        # }
         # get basenames of the paths in imgs
         plot_names <- basename(imgs)
         # zip plots and store in user directory
