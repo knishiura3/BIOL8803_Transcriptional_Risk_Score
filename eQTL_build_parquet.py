@@ -1,8 +1,9 @@
 import dask.dataframe as dd
 import time
 from datetime import timedelta
+import sys
 
-out_dir = "eqtls"
+out_dir = "db/eqtls"
 
 
 subset_cols=[
@@ -22,9 +23,10 @@ subset_cols=[
         "BonferroniP",
     ]
 
+eqtl_sumstats = sys.argv[1]
 start_time = time.monotonic()
 df = dd.read_csv(
-    "2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt",
+    eqtl_sumstats,
     sep="\t",
     usecols=lambda col: col in set(subset_cols),
     dtype={

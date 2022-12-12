@@ -32,16 +32,12 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
 
-<h3 align="center">project_title</h3>
+<h3 align="center">GWAS & eQTL Colocalization</h3>
 
   <p align="center">
-    project_description
+    Colocalize eQTL and GWAS hits from any study in openGWAS.
     <br />
-    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">View Demo</a>
@@ -72,8 +68,6 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -84,17 +78,8 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+This project allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://www.opengwas.org/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a>. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
 
-
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
-
-### Team members
-  ```
-  Andy Chea
-  Colin Naughton
-  Kenji Nishiura
-  Jasmyn Pellebon
-  ```
 <!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `knishiura3`, `BIOL8803_Transcriptional_Risk_Score`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -126,15 +111,6 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- This is an example of how to list things you need to use the software and how to install them. -->
 * anaconda/mamba (only tested on Ubuntu 22.04.1 LTS in WSL2. Things might be different for Windows/Mac/non-virtual Linux)
-  ```
-  conda env create -f=/path/to/<env yml file>
-  ```
-  Note:  use different environments for building the db vs querying the db.
-
-* apt
-  ```
-  depending on your system, several libraries may need to be installed (e.g. libcurl, liblzma-dev, etc.)
-  ```
 
 ### Installation
 
@@ -143,23 +119,20 @@ To get a local copy up and running follow these simple example steps. -->
    ```
    git clone https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score
    ```
-2. Install R packages (includes packages needed for R kernel usage in jupyter nb)
+2. Create a conda environment using the yaml file provided
+    ```
+    conda env create -f=/path/to/<env yml file>
+    ```
+2. Open R within the conda environment & install R packages (includes packages needed for R kernel usage in jupyter nb)
 
 * R 
   ```
-  install.packages(c("devtools",
-    "languageserver",
-    "BiocManager",
-    "tidyverse",
-    "tictoc",
-    "httpgd"), dependencies = TRUE)
-  BiocManager::install(version = "3.14") 
-  devtools::install_github("IRkernel/IRkernel", dependencies = TRUE)
+  install.packages(c("devtools", "shiny", "shinythemes", "shinycssloaders", "DT", "slickR", 
+                 "duckdb", "fs", "tidyverse", "DBI", "glue", "dplyr", "coloc", "ggplot2", "httpgd"))
+  devtools::install_github("jrs95/gassocplot")
+  devtools::install_github("mrcieu/gwasglue")
+  devtools::install_github("IRkernel/IRkernel")
   IRkernel::installspec()
-  remotes::install_github("MRCIEU/gwasglue", build = TRUE, dependencies = TRUE)
-  remotes::install_github("jrs95/gassocplot", build = TRUE, dependencies = TRUE)
-  install.packages("arrow", repos = "https://packagemanager.rstudio.com/all/\_\_linux\_\_/focal/latest")
-
   ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -167,52 +140,31 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+1) Download the ld reference
+```
+wget http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz -P ld; tar -zxvf ld/* -C ld/; rm ld/*tgz
+NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
+```
+2) Download the MAF
+```
+wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt.gz -P db/eqtl_MAF; gunzip db/eqtl_MAF/*
+Rscript MAF_build_parquet.R
+NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
+```
+1) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics and MAF.
+```
+python3 eQTL_build_parquet.py <Path to eQTL summary statistics txt file>
+```
+2) Query the parquet using the desired GWAS ID from <a href="https://www.opengwas.org/">openGWAS</a>.
 Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for example usage
+
+A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/.
 
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
 
 <!-- _For more examples, please refer to the [Documentation](https://example.com)_ -->
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [ ] User chooses GWAS database on their own from IEU OpenGWAS project (mrcieu.ac.uk) based on their trait of interest, inputs GWAS ID to our app. 
-
-  - Only use top hits for analysis (ieugwasr::tophits())
-  - Optional functionality:  search trait within our app
-  - User chooses size of window around GWAS hits (default to +/- 100kb)
-- [ ] eQTL database:  
-  - GTEX/TIGAR-V2, offer user the choice of tissue type (default to blood)
-- [ ] Feature 3
-    - [ ] Nested Feature
-
-See the [open issues](https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues) for a full list of proposed features (and known issues).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License
@@ -221,25 +173,26 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- CONTACT -->
 ## Contact
 
 Kenji Nishiura - kenji@gatech.edu
 
-Project Link: [https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score](https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score)
+Colin Naughton - Naughtoncolin@gmail.com
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
 * Many thanks to [Kenji Gerhardt](https://github.com/KGerhardt) for his assistance with coding best practices and optimization
-* []()
-* []()
+
+## Team Members
+
+* Andy Chea
+* Colin Naughton
+* Kenji Nishiura
+* Jasmyn Pellebon
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
