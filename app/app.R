@@ -166,9 +166,9 @@ server <- function(input, output, session) {
                         # input to coloc_to_gassocplot is list of rsids (should be identical in gwas/eqtl data at this stage): out[[1]]$snp
                         # choices for ancestry are AMR, AFR, EAS, EUR, SAS
                         # note: a bit slow first time because the plink_bin function will download/install plink if it's not already installed.
-                        # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
+                        temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = '/projects/team1/bin/mambaforge/envs/plink/bin/plink')
                         # local debugging (comment out line above, uncomment line below)
-                        temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
+                        # temp <- coloc_to_gassocplot(out, bfile = paste0(dir_ld, "/EUR"), plink_bin = genetics.binaRies::get_plink_binary())
                         # increment counter for number of colocalized eQTLs
                         colocalized_counter <- colocalized_counter + 1
                     } else {
