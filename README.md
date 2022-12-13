@@ -33,7 +33,7 @@
 <br />
 <div align="center">
 
-<h3 align="center">GWAS & eQTL Colocalization</h3>
+<h3 align="center"> GWAS GENEIE (GWAS Gene-Integrated Explorer)</h3>
 
   <p align="center">
     Colocalize eQTL and GWAS hits from any study in openGWAS.
@@ -80,7 +80,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-This project allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://www.opengwas.org/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a>. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
+GWAS GENEIE allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://www.opengwas.org/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a>. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
 
 <!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `knishiura3`, `BIOL8803_Transcriptional_Risk_Score`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
 
@@ -142,36 +142,38 @@ To get a local copy up and running follow these simple example steps. -->
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-1) Download the ld reference
+1) Navigate to the cloned GWAS GENEIE directory.
+2) Download the ld reference
 ```
 wget http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz -P ld; tar -zxvf ld/* -C ld/; rm ld/*tgz
-NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
+mv ld/data_maf0.01_rs_ref.bed ld/EUR.bed
+mv ld/data_maf0.01_rs_ref.bim ld/EUR.bim
+mv ld/data_maf0.01_rs_ref.fam ld/EUR.fam
 ```
-2) Download the MAF
+3) Download the MAF information and build its parquet.
 ```
 wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt.gz -P db/eqtl_MAF; gunzip db/eqtl_MAF/*
 Rscript MAF_build_parquet.R
-NEED TO ADD PORTION TO BATCH RENAME OR TAKE FILE PREFIX FROM FOLDER
 ```
-1) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics and MAF.
+4) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics and MAF.
 ```
 python3 eQTL_build_parquet.py <Path to eQTL summary statistics txt file>
+
+#Example: python3 eQTL_build_parquet.py ./2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
 ```
-2) Query the parquet using the desired GWAS ID from <a href="https://www.opengwas.org/">openGWAS</a>.
-Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for example usage
+5) Query the parquet using the desired GWAS ID from <a href="https://www.opengwas.org/">openGWAS</a>.
+Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for usage.
 
 A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/.
+
+<!-- OUTPUT EXAMPLES -->
+## Output
+* Txt file of combined summary statistics for GWAS and eQTL hits found to be the same signal. Refer to <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> & <a href="https://www.opengwas.org/">openGWAS</a> for column descriptions.
+* PNG files of combined Manhatten & LD plots of regions surrounding GWAS and eQTL hits found to be the same signal.
 
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
 
 <!-- _For more examples, please refer to the [Documentation](https://example.com)_ -->
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- LICENSE -->
-## License
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
