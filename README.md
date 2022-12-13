@@ -40,7 +40,9 @@
     <br />
     <br />
     <br />
-    <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score">View Demo</a>
+    <a href="https://genapp2022.biosci.gatech.edu/team1/">View Shiny App</a>
+    ·
+    <a href="https://www.youtube.com/watch?v=YmG1hfO0Q_E">View App Demo</a>
     ·
     <a href="https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/issues">Report Bug</a>
     ·
