@@ -155,7 +155,7 @@ mv ld/data_maf0.01_rs_ref.fam ld/EUR.fam
 wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt.gz -P data/eqtl_MAF; gunzip data/eqtl_MAF/*
 Rscript MAF_build_parquet.R
 ```
-4) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics and MAF.
+4) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics.
 ```
 python3 eQTL_build_parquet.py <Path to eQTL summary statistics txt file>
 
