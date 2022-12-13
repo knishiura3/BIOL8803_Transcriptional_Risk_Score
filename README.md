@@ -80,7 +80,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-GWAS GENEIE allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://www.opengwas.org/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a>. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
+GWAS GENEIE allows researchers to colocalize eQTL hits from eQTLGen and GWAS hits from any study in openGWAS. It operates under the assumption that some GWAS and eQTL hits in close proximity may be the same signal, linking phenotypes to gene expression and enabling the development of transcriptional risk scores (TRS) and polygenic-predicted transcriptional risk scores (PP-TRS) for these phenotypes. As input, the project takes any study ID from <a href="https://gwas.mrcieu.ac.uk/">openGWAS</a> as well as eQTL summary statistics from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> and runs of coloc's coloc.abf() function. The project has been implemented as an <a href="https://genapp2022.biosci.gatech.edu/team1/">app</a> using whole blood eQTL summary statistics, allowing users to download a list of GWAS and eQTL hits found to be the same signal. It was originally developed as a class project for BIOL8803 at Georgia Tech in Fall 2022.
 
 <!-- Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `knishiura3`, `BIOL8803_Transcriptional_Risk_Score`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description` -->
 
@@ -149,26 +149,29 @@ wget http://fileserve.mrcieu.ac.uk/ld/data_maf0.01_rs_ref.tgz -P ld; tar -zxvf l
 mv ld/data_maf0.01_rs_ref.bed ld/EUR.bed
 mv ld/data_maf0.01_rs_ref.bim ld/EUR.bim
 mv ld/data_maf0.01_rs_ref.fam ld/EUR.fam
+
 ```
 3) Download the MAF information and build its parquet.
 ```
 wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2018-07-18_SNP_AF_for_AlleleB_combined_allele_counts_and_MAF_pos_added.txt.gz -P data/eqtl_MAF; gunzip data/eqtl_MAF/*
 Rscript MAF_build_parquet.R
+
 ```
 4) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics.
 ```
-python3 eQTL_build_parquet.py <Path to eQTL summary statistics txt file>
+wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz -P data/eqtl; gunzip data/eqtl/*
+python3 eQTL_build_parquet.py data/eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
+rm data/eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
 
-#Example: python3 eQTL_build_parquet.py ./2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
 ```
-5) Query the parquet using the desired GWAS ID from <a href="https://www.opengwas.org/">openGWAS</a>.
+5) Query the parquet using the desired GWAS ID from <a href="https://gwas.mrcieu.ac.uk/">openGWAS</a>.
 Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for usage.
 
 A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/.
 
 <!-- OUTPUT EXAMPLES -->
 ## Output
-* Txt file of combined summary statistics for GWAS and eQTL hits found to be the same signal. Refer to <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> & <a href="https://www.opengwas.org/">openGWAS</a> for column descriptions.
+* Txt file of combined summary statistics for GWAS and eQTL hits found to be the same signal. Refer to <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> & <a href="https://gwas.mrcieu.ac.uk/">openGWAS</a> for column descriptions.
 * PNG files of combined Manhatten & LD plots of regions surrounding GWAS and eQTL hits found to be the same signal.
 
 <!-- Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources. -->
