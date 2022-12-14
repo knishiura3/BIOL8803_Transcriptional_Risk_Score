@@ -165,7 +165,7 @@ rm ./2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
 
 ```
 5) Query the parquet using the desired GWAS ID from <a href="https://gwas.mrcieu.ac.uk/">openGWAS</a>.
-Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/parquet_duckDB/Coloc_tutorial.ipynb for usage.
+Refer to https://github.com/knishiura3/BIOL8803_Transcriptional_Risk_Score/blob/main/demo.ipynb for usage.
 
 A shiny app implementation is also available at https://genapp2022.biosci.gatech.edu/team1/.
 
