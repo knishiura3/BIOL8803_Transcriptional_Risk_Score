@@ -159,9 +159,9 @@ Rscript MAF_build_parquet.R
 ```
 4) Build the parquet from <a href="https://www.eqtlgen.org/cis-eqtls.html">eQTLGen</a> summary statistics.
 ```
-wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz -P data/eqtl; gunzip data/eqtl/*
-python3 eQTL_build_parquet.py data/eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
-rm data/eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
+wget https://molgenis26.gcc.rug.nl/downloads/eqtlgen/cis-eqtl/2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz; gunzip ./*
+python3 eQTL_build_parquet.py 2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
+rm ./2019-12-11-cis-eQTLsFDR-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt
 
 ```
 5) Query the parquet using the desired GWAS ID from <a href="https://gwas.mrcieu.ac.uk/">openGWAS</a>.
